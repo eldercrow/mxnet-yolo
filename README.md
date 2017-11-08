@@ -8,9 +8,11 @@ This is a pre-released version.
 This is a re-implementation of original yolo v2 which is based on [darknet](https://github.com/pjreddie/darknet).
 The arXiv paper is available [here](https://arxiv.org/pdf/1612.08242.pdf).
 
-#### eldercrow
-I am not interested in exact re-implementation of the original YOLO. 
+#### (eldercrow)
+I am not interested in exact re-implementation of the original YOLO.
 If anyone is looking for that, please check zhreshold's original repo.
+
+This code is not working yet.
 
 TODO:
 - Replace cpp layers to python layers.
