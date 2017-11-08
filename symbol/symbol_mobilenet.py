@@ -22,6 +22,8 @@ def depthwise_unit(data, name, nf_dw, nf_sep, pad=(1, 1), stride=(1, 1), use_glo
     conv_dw = conv_bn_relu(data, name=name+'_dw', \
             num_filter=nf_dw, kernel=(3, 3), pad=pad, stride=stride, num_group=nf_dw, wd_mult=0.01, \
             use_global_stats=use_global_stats)
+    if nf_sep == 0:
+        return conv_dw
     conv_sep = conv_bn_relu(conv_dw, name=name+'_sep', \
             num_filter=nf_sep, kernel=(1, 1), pad=(0, 0), \
             use_global_stats=use_global_stats)

@@ -40,12 +40,25 @@ def get_symbol(num_classes=20, nms_thresh=0.5, force_nms=False, **kwargs):
             nf_dw=1024+2048, nf_sep=1024, kernel=(3, 3), pad=(1, 1),
             use_global_stats=kwargs['use_global_stats'])
 
-    loc_preds = depthwise_unit(conv8_1, '_loc_pred',
-            nf_dw=1024, nf_sep=5, kernel=(3, 3), pad=(1, 1),
-            use_global_stats=kwargs['use_global_stats'])
+    # class prediction
     cls_preds = depthwise_unit(conv8_1, '_cls_pred',
             nf_dw=1024, nf_sep=num_classes, kernel=(5, 5), pad=(2, 2),
             use_global_stats=kwargs['use_global_stats'])
+    cls_preds = mx.sym.reshape(cls_preds, (0, 0, -1))
+
+    # bb and iou prediction
+    loc_preds = depthwise_unit(conv8_1, '_loc_pred',
+            nf_dw=1024, nf_sep=4, kernel=(3, 3), pad=(1, 1),
+            use_global_stats=kwargs['use_global_stats'])
+    loc_preds = mx.sym.tanh(loc_preds)
+    iou_preds = depthwise_unit(conv8_1, '_iou_pred',
+            nf_dw=1024, nf_sep=1, kernel=(3, 3), pad=(1, 1),
+            use_global_stats=kwargs['use_global_stats'])
+    iou_preds = mx.sym.sigmoid(iou_preds)
+    loc_preds = mx.sym.concat(loc_preds, iou_preds)
+    loc_preds = mx.sym.transpose(loc_preds, (0, 2, 3, 1))
+    loc_preds = mx.sym.flatten(loc_preds)
+
     anchor_boxes = mx.sym.Custom(conv8_1, op_type='multibox_prior',
             name='yolo_anchors', shapes=anchors)
 
@@ -71,12 +84,12 @@ def get_symbol(num_classes=20, nms_thresh=0.5, force_nms=False, **kwargs):
     loc_label = mx.sym.BlockGrad(loc_target_mask, name='loc_label')
 
     det = mx.contrib.symbol.MultiBoxDetection(*[cls_loss, loc_preds, anchor_boxes], \
-        name="detection", nms_threshold=nms_thresh, force_suppress=force_suppress,
-        variances=(0.1, 0.1, 0.2, 0.2), nms_topk=nms_topk)
+        name="detection", nms_threshold=nms_thresh, force_suppress=force_nms,
+        variances=(0.1, 0.1, 0.2, 0.2), nms_topk=400)
     det = mx.symbol.MakeLoss(data=det, grad_scale=0, name="det_out")
 
     # group output
-    out = [cls_loss, loc_loss, cls_label, loc_label, det, match_info]
+    out = [cls_loss, loc_loss, cls_label, loc_label, det]
     return mx.sym.Group(out)
 
     # pred = mx.symbol.Convolution(data=conv8_1, name='conv_pred', kernel=(1, 1),
