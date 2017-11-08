@@ -4,14 +4,18 @@ Still under development. 71 mAP on VOC2007 achieved so far.
 
 This is a pre-released version.
 
-### [eldercrow] TODO:
-- Replace cpp layers to python layers.
-- Add bounding box clutering method.
-- Apply focal loss.
-
 ### Disclaimer
 This is a re-implementation of original yolo v2 which is based on [darknet](https://github.com/pjreddie/darknet).
 The arXiv paper is available [here](https://arxiv.org/pdf/1612.08242.pdf).
+
+#### eldercrow
+I am not interested in exact re-implementation of the original YOLO. 
+If anyone is looking for that, please check zhreshold's original repo.
+
+TODO:
+- Replace cpp layers to python layers.
+- Add bounding box clutering method.
+- Apply focal loss.
 
 ### Demo
 
