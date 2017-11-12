@@ -15,8 +15,8 @@ If anyone is looking for that, check zhreshold's original repo.
 This code is not working yet.
 
 Changes from the original algorithm:
-- Focal loss for classifier training.
-- IOU loss for regressor training.
+- [Focal loss](https://arxiv.org/abs/1708.02002) for classifier training.
+- [IOU loss](https://arxiv.org/abs/1608.01471) for regressor training.
 - MobileNet for backbone network.
 
 TODO:
