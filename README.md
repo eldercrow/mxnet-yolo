@@ -14,6 +14,11 @@ If anyone is looking for that, check zhreshold's original repo.
 
 This code is not working yet.
 
+Changes from the original algorithm:
+- Focal loss for classifier training.
+- IOU loss for regressor training.
+- MobileNet for backbone network.
+
 TODO:
 - Apply plateau learning scheduler.
 - (done) Replace cpp layers to python layers.
