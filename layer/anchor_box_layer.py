@@ -44,14 +44,14 @@ class AnchorBox(mx.operator.CustomOp):
         # compute heights and widths
         wh = np.zeros((apc, 4))
         for k, anc in enumerate(self.anc_shapes):
-            wh[k, 0] = -(anc[0] * 0.5)
-            wh[k, 1] = -(anc[1] * 0.5)
-            wh[k, 2] =  (anc[0] * 0.5)
-            wh[k, 3] =  (anc[1] * 0.5)
-            # wh[k, 0] = -(anc[0] * stride[0] * 0.5)
-            # wh[k, 1] = -(anc[1] * stride[1] * 0.5)
-            # wh[k, 2] =  (anc[0] * stride[0] * 0.5)
-            # wh[k, 3] =  (anc[1] * stride[1] * 0.5)
+            wh[k, 0] = -(anc[0] * stride[0] * 0.5)
+            wh[k, 1] = -(anc[1] * stride[1] * 0.5)
+            wh[k, 2] =  (anc[0] * stride[0] * 0.5)
+            wh[k, 3] =  (anc[1] * stride[1] * 0.5)
+            # wh[k, 0] = -(anc[0] * 0.5)
+            # wh[k, 1] = -(anc[1] * 0.5)
+            # wh[k, 2] =  (anc[0] * 0.5)
+            # wh[k, 3] =  (anc[1] * 0.5)
 
         # build anchors
         anchors = np.zeros((h, w, apc, 4), dtype=np.float32)

@@ -11,7 +11,7 @@ class MultiBoxMetric(mx.metric.EvalMetric):
 
         super(MultiBoxMetric, self).__init__('MultiBox')
         self.num = 2
-        self.name = ['CrossEntropy', 'LogIOU']
+        self.name = ['CrossEntropy', 'NegLogIOU']
 
         self.reset()
 

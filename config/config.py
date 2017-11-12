@@ -34,26 +34,26 @@ cfg = DotDict()
 cfg.ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 cfg.anchor_shapes = [ \
-    0.045, 0.068, \
-    0.08, 0.207, \
-    0.205, 0.164, \
-    0.24, 0.467, \
-    0.661, 0.669, \
-    ]
+        0.954, 1.348, \
+        1.882, 4.035, \
+        6.331, 3.807, \
+        3.985, 8.042, \
+        9.701, 9.64, \
+        ]
 
 # training configs
 cfg.train = DotDict()
 # random cropping samplers
 cfg.train.rand_crop_samplers = [
-    RandCropper(min_crop_scales=0.3, min_crop_overlaps=0.1),
-    RandCropper(min_crop_scales=0.3, min_crop_overlaps=0.3),
-    RandCropper(min_crop_scales=0.3, min_crop_overlaps=0.5),
-    RandCropper(min_crop_scales=0.3, min_crop_overlaps=0.7),
-    RandCropper(min_crop_scales=0.3, min_crop_overlaps=0.9),]
+    RandCropper(min_crop_scales=0.5, min_crop_overlaps=0.1),
+    RandCropper(min_crop_scales=0.5, min_crop_overlaps=0.3),
+    RandCropper(min_crop_scales=0.5, min_crop_overlaps=0.5),
+    RandCropper(min_crop_scales=0.5, min_crop_overlaps=0.7),
+    RandCropper(min_crop_scales=0.5, min_crop_overlaps=0.9),]
 cfg.train.crop_emit_mode = 'center'
 # cfg.train.emit_overlap_thresh = 0.4
 # random padding
-cfg.train.rand_pad = RandPadder(rand_pad_prob=0.5, max_pad_scale=3.0)
+cfg.train.rand_pad = RandPadder(rand_pad_prob=0.5, max_pad_scale=2.0)
 # random color jitter
 cfg.train.color_jitter = ColorJitter(random_hue_prob=0.5, random_saturation_prob=0.5,
     random_illumination_prob=0.5, random_contrast_prob=0.5)

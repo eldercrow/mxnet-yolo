@@ -74,9 +74,6 @@ def clsuter_anchor(imdb, box_shapes, n_cluster, data_shape, th_iou=0.5):
             break
         midx = np.argmin(jd_map)
         iy, ix = np.unravel_index(midx, dims=jd_map.shape)
-        if iy >= ix:
-            import ipdb
-            ipdb.set_trace()
         # merge ix to iy
         iou_bb[:, iy] = np.logical_or(iou_bb[:, iy], iou_bb[:, ix])
         iou_bb[:, ix] = 0
@@ -98,7 +95,7 @@ def clsuter_anchor(imdb, box_shapes, n_cluster, data_shape, th_iou=0.5):
     cshapes = np.zeros((len(cidx), 2))
     for i, c in enumerate(cidx):
         wh_cluster = wh_label[iou_bb[:, c], :]
-        cshapes[i, :] = _update_bb(box_shapes[c, :], wh_cluster)
+        cshapes[i, :] = _update_bb(box_shapes[c, :], wh_cluster, None)
 
     # k-means refinement
     prev_midx = None
@@ -114,7 +111,10 @@ def clsuter_anchor(imdb, box_shapes, n_cluster, data_shape, th_iou=0.5):
 
         for i in range(n_cluster):
             wh_cluster = wh_label[midx == i, :]
-            cshapes[i, :] = _update_bb(cshapes[i, :], wh_cluster)
+            cshapes[i, :] = _update_bb(cshapes[i, :], wh_cluster, iou_cluster[midx == i, i])
+
+    max_iou = np.max(iou_cluster, axis=1)
+    mean_iou = np.mean(max_iou)
 
     for i, bb in enumerate(cshapes):
         iou_cluster[:, i] = _compute_iou(bb, wh_label)
@@ -127,20 +127,29 @@ def clsuter_anchor(imdb, box_shapes, n_cluster, data_shape, th_iou=0.5):
     csr[:, 1] = cshapes[:, 0] / cshapes[:, 1]
     sidx = np.argsort(csr[:, 0])
     csr = csr[sidx, :]
-    cshapes = cshapes[sidx, :]
+    cshapes = cshapes[sidx, :] * data_shape
 
     np.set_printoptions(suppress=True)
     print 'cluster centers after k-means.'
     print np.round(cshapes, 3)
-    print 'squared cluster size and ratio.'
-    print np.round(csr, 3)
+    print 'divided by 32, for anchor layer parameter.'
+    print np.round(cshapes / 32.0, 3)
+    # print 'squared cluster size and ratio.'
+    # print np.round(csr, 3)
+    print 'mean IOU = {}.'.format(mean_iou)
 
 
-def _update_bb(bb, wh_cluster):
+def _update_bb(bb, wh_cluster, iou_cluster):
     #
-    diffs = np.log(wh_cluster / np.reshape(bb, (1, -1)))
-    scaler = np.exp(np.mean(diffs, axis=0))
-    return bb * scaler
+    if iou_cluster is None:
+        return np.mean(wh_cluster, axis=0) #np.exp(np.mean(np.log(wh_cluster)))
+    ix = np.exp(-np.abs(np.log(bb[0] / wh_cluster[:, 0])))
+    iy = np.exp(-np.abs(np.log(bb[1] / wh_cluster[:, 1])))
+    diff_x = wh_cluster[:, 0] * (1 - ix)
+    diff_y = wh_cluster[:, 1] * (1 - iy)
+    bb[0] = np.mean(diff_x) / np.mean(1 - ix)
+    bb[1] = np.mean(diff_y) / np.mean(1 - iy)
+    return bb
 
 
 def _get_valid_label(labels):
@@ -178,7 +187,7 @@ def parse_args():
     parser.add_argument('--num-cluster', dest='num_cluster', help='number of cluster',
                         default=5, type=int)
     parser.add_argument('--data-shape', dest='data_shape', help='data (image) shape',
-                        default=384, type=int)
+                        default=416, type=int)
     args = parser.parse_args()
     return args
 

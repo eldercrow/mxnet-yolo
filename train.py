@@ -46,7 +46,7 @@ def parse_args():
     parser.add_argument('--min-random-shape', dest='min_random_shape', type=int,
                         default=352, help='minimum random data shape')
     parser.add_argument('--max-random-shape', dest='max_random_shape', type=int,
-                        default=512, help='maximum random data shape')
+                        default=576, help='maximum random data shape')
     parser.add_argument('--label-width', dest='label_width', type=int, default=350,
                         help='force padding label width to sync across train and validation')
     parser.add_argument('--lr', dest='learning_rate', type=float, default=0.0001,
