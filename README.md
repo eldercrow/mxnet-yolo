@@ -10,14 +10,16 @@ The arXiv paper is available [here](https://arxiv.org/pdf/1612.08242.pdf).
 
 #### (eldercrow)
 I am not interested in exact re-implementation of the original YOLO.
-If anyone is looking for that, please check zhreshold's original repo.
+If anyone is looking for that, check zhreshold's original repo.
 
 This code is not working yet.
 
 TODO:
-- Replace cpp layers to python layers.
-- Add bounding box clutering method.
-- Apply focal loss.
+- Apply plateau learning scheduler.
+- (done) Replace cpp layers to python layers.
+- (done) Add bounding box clutering method.
+- (done) Apply focal loss.
+- (done) Apply IOU loss for regressor training.
 
 ### Demo
 
