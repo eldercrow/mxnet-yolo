@@ -165,7 +165,7 @@ def _autofit_ratio(bb, max_ratio=3.0):
 
 @mx.operator.register("yolo_target")
 class YoloTargetProp(mx.operator.CustomOpProp):
-    def __init__(self, th_iou=0.5, th_iou_neg=0.4, th_small=0.04):
+    def __init__(self, th_iou=0.5, th_iou_neg=0.4, th_small=0.01):
         #
         super(YoloTargetProp, self).__init__(need_top_grad=False)
         self.th_iou = float(th_iou)

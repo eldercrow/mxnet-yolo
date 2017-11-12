@@ -6,7 +6,6 @@ Redmon, Joseph, and Ali Farhadi. "YOLO9000: Better, Faster, Stronger."
 import mxnet as mx
 from symbol_mobilenet import get_symbol as get_mobilenet
 from symbol_mobilenet import depthwise_unit, subpixel_downsample
-from layer.anchor_box_layer import *
 
 def get_symbol(num_classes, use_global_stats):
     #
