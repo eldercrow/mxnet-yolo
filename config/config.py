@@ -33,6 +33,14 @@ ColorJitter = namedtuple_with_defaults('ColorJitter',
 cfg = DotDict()
 cfg.ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
+cfg.anchor_shapes = [ \
+    0.045, 0.068, \
+    0.08, 0.207, \
+    0.205, 0.164, \
+    0.24, 0.467, \
+    0.661, 0.669, \
+    ]
+
 # training configs
 cfg.train = DotDict()
 # random cropping samplers
@@ -54,6 +62,14 @@ cfg.train.rand_mirror_prob = 0.5
 cfg.train.shuffle = True
 cfg.train.seed = 233
 cfg.train.preprocess_threads = 48
+
+cfg.train.focal_loss_alpha = 1.0/4.0
+cfg.train.focal_loss_gamma = 2.0
+cfg.train.smoothl1_weight = 1.0
+cfg.train.use_smooth_ce = False
+cfg.train.smooth_ce_th = 1e-02
+cfg.train.smooth_ce_lambda = 1.0
+
 cfg.train = config_as_dict(cfg.train)  # convert to normal dict
 
 # validation

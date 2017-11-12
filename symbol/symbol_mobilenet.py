@@ -17,11 +17,13 @@ def conv_bn_relu(data, name, \
     return relu
 
 
-def depthwise_unit(data, name, nf_dw, nf_sep, pad=(1, 1), stride=(1, 1), use_global_stats=False):
+def depthwise_unit(data, name, nf_dw, nf_sep,
+        kernel=(3, 3), pad=(1, 1), stride=(1, 1),
+        use_global_stats=False):
     #
     conv_dw = conv_bn_relu(data, name=name+'_dw', \
-            num_filter=nf_dw, kernel=(3, 3), pad=pad, stride=stride, num_group=nf_dw, wd_mult=0.01, \
-            use_global_stats=use_global_stats)
+            num_filter=nf_dw, kernel=kernel, pad=pad, stride=stride, num_group=nf_dw, \
+            wd_mult=0.01, use_global_stats=use_global_stats)
     if nf_sep == 0:
         return conv_dw
     conv_sep = conv_bn_relu(conv_dw, name=name+'_sep', \
@@ -44,13 +46,8 @@ def subpixel_downsample(data, ch, c, r, name=None):
     return X
 
 
-def get_symbol(num_classes=1000, **kwargs):
+def get_symbol(num_classes=1000, use_global_stats=False):
     #
-    if 'use_global_stats' not in kwargs:
-        use_global_stats = False
-    else:
-        use_global_stats = kwargs['use_global_stats']
-
     data = mx.sym.var(name='data')
     label = mx.sym.var(name='label')
 

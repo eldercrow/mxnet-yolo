@@ -78,3 +78,20 @@ class Imdb(object):
                     f.write(line)
         else:
             raise RuntimeError("No image in imdb")
+
+    def dump_bb(self):
+        '''
+        Dump every bounding box into a sigle file.
+        Will be used in bounding box analysis.
+        '''
+        labels_all = []
+        for index in range(self.num_images):
+            label = self.label_from_index(index)
+            if label.size < 1:
+                continue
+            labels_all.append(label)
+            # if labels_all is None:
+            #     labels_all = label
+            # else:
+            #     labels_all = np.vstack((labels_all, label))
+        return labels_all

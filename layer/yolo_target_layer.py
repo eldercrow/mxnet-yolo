@@ -8,13 +8,13 @@ import numpy as np
 import logging
 from ast import literal_eval
 
-class YoloOutput(mx.operator.CustomOp):
+class YoloTarget(mx.operator.CustomOp):
     '''
     Python (inexact) implementation of yolo output layer.
     '''
     def __init__(self, th_iou, th_iou_neg, th_small):
         #
-        super(YoloOutput, self).__init__()
+        super(YoloTarget, self).__init__()
         self.th_iou = th_iou
         self.th_iou_neg = th_iou_neg
         self.th_small = th_small
@@ -37,12 +37,12 @@ class YoloOutput(mx.operator.CustomOp):
         # precompute some data for IOU computation
         if self.anchors_t is None:
             self.anchors = np.reshape(in_data[0].asnumpy(), (-1, 4)) # (n_anchor, 4)
-            self.anchors_t = mx.nd.transpose(mx.nd.reshape(in_data[0].copy(), shape=(-1, 4)), (1, 0)) # (4, n_anchor)
+            self.anchors_t = mx.nd.transpose(mx.nd.reshape(in_data[0].copy(), shape=(-1, 4)), (1, 0))
             self.area_anchors_t = \
                     (self.anchors_t[2] - self.anchors_t[0]) * (self.anchors_t[3] - self.anchors_t[1])
 
         # numpy arrays for outputs of the layer
-        target_reg = np.zeros((n_batch, n_anchors, 5), dtype=np.float32)
+        target_reg = np.zeros((n_batch, n_anchors, 4), dtype=np.float32)
         mask_reg = np.zeros_like(target_reg)
         # I will use focal loss, so basically everything is negative.
         target_cls = np.zeros((n_batch, 1, n_anchors), dtype=np.float32)
@@ -53,8 +53,8 @@ class YoloOutput(mx.operator.CustomOp):
                     labels_all[i], max_cids[i], \
                     target_cls[i][0], target_reg[i], mask_reg[i])
 
-        target_reg = np.reshape(target_reg, (n_batch, -1))
-        mask_reg = np.reshape(mask_reg, (n_batch, -1))
+        target_reg = np.reshape(target_reg, (n_batch, -1, 4))
+        mask_reg = np.reshape(mask_reg, (n_batch, -1, 4))
 
         self.assign(out_data[0], req[0], mx.nd.array(target_reg, ctx=in_data[2].context))
         self.assign(out_data[1], req[1], mx.nd.array(mask_reg, ctx=in_data[2].context))
@@ -76,7 +76,7 @@ class YoloOutput(mx.operator.CustomOp):
         for i, label in enumerate(labels):
             gt_cls = int(label[0]) + 1
             #
-            lsq = _autofit_ratio(label[1:])
+            lsq = label[1:] #_autofit_ratio(label[1:])
             #
             iou = _compute_iou(lsq, self.anchors_t, self.area_anchors_t)
 
@@ -91,16 +91,28 @@ class YoloOutput(mx.operator.CustomOp):
 
             # positive and regression samples
             pidx = np.where(np.logical_and(iou_mask, iou > self.th_iou))[0]
+            ridx = np.where(np.logical_and(iou_mask, iou > self.th_iou_neg))[0]
             if len(pidx) == 0:
+                if np.max(iou) == 0:
+                    continue
                 # at least one positive sample
                 pidx = [np.argmax(iou)]
 
+            # map ridx first, and then pidx
+            target_cls[ridx] = -1
             target_cls[pidx] = gt_cls
-            rt, rm = _compute_loc_target(label[1:], self.anchors[pidx, :], iou[pidx])
+            rt, rm = _compute_loc_target(label[1:], self.anchors[pidx, :])
             target_reg[pidx, :] = rt
             mask_reg[pidx, :] = rm
 
         return target_cls, target_reg, mask_reg
+
+    def backward(self, req, out_grad, in_data, out_data, in_grad, aux):
+        '''
+        Pass the gradient to their corresponding positions
+        '''
+        for i, r in enumerate(req):
+            self.assign(in_grad[i], r, 0)
 
 
 def _get_valid_labels(labels):
@@ -124,16 +136,10 @@ def _compute_iou(label, anchors_t, area_anchors_t):
     return iou.asnumpy() # (num_anchors, )
 
 
-def _compute_loc_target(gt_bb, bb, iou):
-    loc_target = np.zeros((bb.shape[0], 5))
-    aw = (bb[:, 2] - bb[:, 0])
-    ah = (bb[:, 3] - bb[:, 1])
-    loc_target[:, 0] = ((gt_bb[2] + gt_bb[0]) - (bb[:, 2] + bb[:, 0])) * 0.5 / aw
-    loc_target[:, 1] = ((gt_bb[3] + gt_bb[1]) - (bb[:, 3] + bb[:, 1])) * 0.5 / ah
-    loc_target[:, 2] = np.log((gt_bb[2] - gt_bb[0]) / aw)
-    loc_target[:, 3] = np.log((gt_bb[3] - gt_bb[1]) / ah)
-    loc_target[:, 4] = iou
-    return loc_target
+def _compute_loc_target(gt_bb, bb):
+    loc_target = np.tile(np.reshape(gt_bb, (1, -1)), (bb.shape[0], 1))
+    loc_mask = np.ones_like(loc_target)
+    return loc_target, loc_mask
 
 
 def _autofit_ratio(bb, max_ratio=3.0):
@@ -157,11 +163,11 @@ def _autofit_ratio(bb, max_ratio=3.0):
     return res
 
 
-@mx.operator.register("yolo_output")
-class YoloOutputProp(mx.operator.CustomOpProp):
+@mx.operator.register("yolo_target")
+class YoloTargetProp(mx.operator.CustomOpProp):
     def __init__(self, th_iou=0.5, th_iou_neg=0.4, th_small=0.04):
         #
-        super(YoloOutputProp, self).__init__(need_top_grad=False)
+        super(YoloTargetProp, self).__init__(need_top_grad=False)
         self.th_iou = float(th_iou)
         self.th_iou_neg = float(th_iou_neg)
         self.th_small = float(th_small)
@@ -175,7 +181,7 @@ class YoloOutputProp(mx.operator.CustomOpProp):
     def infer_shape(self, in_shape):
         n_batch, n_class, n_sample = in_shape[2]
 
-        target_reg_shape = (n_batch, n_sample * 5)
+        target_reg_shape = (n_batch, n_sample, 4)
         mask_reg_shape = target_reg_shape
         target_cls_shape = (n_batch, 1, n_sample)
 
@@ -183,4 +189,4 @@ class YoloOutputProp(mx.operator.CustomOpProp):
         return in_shape, out_shape, []
 
     def create_operator(self, ctx, shapes, dtypes):
-        return MultiBoxTarget(self.th_iou, self.th_iou_neg, self.th_small)
+        return YoloTarget(self.th_iou, self.th_iou_neg, self.th_small)
