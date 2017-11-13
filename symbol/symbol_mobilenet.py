@@ -9,7 +9,7 @@ def conv_bn_relu(data, name, \
     conv_w = mx.sym.var(name=conv_name+'_weight', lr_mult=1.0, wd_mult=wd_mult)
     conv_b = None
 
-    conv = mx.sym.Convolution(data, weight=conv_w, bias=conv_b, num_filter=num_filter, \
+    conv = mx.sym.Convolution(data, name=conv_name, weight=conv_w, bias=conv_b, num_filter=num_filter, \
             kernel=kernel, pad=pad, stride=stride, num_group=num_group, no_bias=True)
     bn = mx.sym.BatchNorm(conv, name=conv_name+'_bn', \
             use_global_stats=use_global_stats, fix_gamma=False, eps=1e-04)

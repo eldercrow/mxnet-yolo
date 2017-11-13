@@ -79,6 +79,36 @@ def get_lr_scheduler(learning_rate, lr_refactor_step, lr_refactor_ratio,
         lr_scheduler = BurnInMultiFactorScheduler(burn_in=1000, step=steps, factor=lr_refactor_ratio)
         return (lr, lr_scheduler)
 
+def set_mod_params(mod, args, auxs, logger):
+    mod.init_params(initializer=mx.init.Xavier())
+    args0, auxs0 = mod.get_params()
+    arg_params = args0.copy()
+    aux_params = auxs0.copy()
+
+    # for k, v in sorted(arg_params.items()):
+    #     print k, v.shape
+
+    if args is not None:
+        for k in args0:
+            if k in args and args0[k].shape == args[k].shape:
+                arg_params[k] = args[k]
+            else:
+                logger.info('param {} is inited from scratch.'.format(k))
+    else:
+        logger.info('from scratch training mode, args are inited by random.')
+
+    if auxs is not None:
+        for k in auxs0:
+            if k in auxs and auxs0[k].shape == auxs[k].shape:
+                aux_params[k] = auxs[k]
+            else:
+                logger.info('param {} is inited from scratch.'.format(k))
+    else:
+        logger.info('from scratch training mode, auxs are inited by random.')
+
+    mod.set_params(arg_params=arg_params, aux_params=aux_params)
+    return mod
+
 def train_net(net, train_path, num_classes, batch_size,
               data_shape, mean_pixels, resume, finetune, pretrained, epoch,
               prefix, ctx, begin_epoch, end_epoch, frequent, learning_rate,
@@ -283,6 +313,11 @@ def train_net(net, train_path, num_classes, batch_size,
                           'lr_scheduler':lr_scheduler,
                           'clip_gradient':10,
                           'rescale_grad': 1.0 }
+
+        # more informatic parameter setting
+        if not mod.binded:
+            mod.bind(data_shapes=train_iter.provide_data, label_shapes=train_iter.provide_label)
+            mod = set_mod_params(mod, args, auxs, logger)
 
         mod.fit(train_iter,
                 val_iter,

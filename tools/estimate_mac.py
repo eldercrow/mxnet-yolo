@@ -77,7 +77,14 @@ def estimate_mac(net, data_shape, label_shape=None):
     for _, v in layer_info.items():
         total_mac += v[1]
     total_gmac = np.round(total_mac / float(2**30), 3)
+
+    for li, lv in sorted(layer_info.items()):
+        flop = lv[1]
+        gflop = np.round(flop / float(2**30), 3)
+        print '{}: {:,} ({:,})'.format(li, flop, gflop)
+    print '-------------------------------------------------------'
     print 'Total {:,} ({:,}) FLOP (GFLOP) for conv, bn, fc layers.'.format(total_mac, total_gmac)
+    print '-------------------------------------------------------'
 
     return total_mac, total_gmac
 

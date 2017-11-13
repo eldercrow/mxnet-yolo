@@ -6,7 +6,7 @@ python train.py \
     --network symbol_mobilenet_yolo \
     --label-width 350 \
     --batch-size 32 \
-    --data-shape 384 \
+    --data-shape 416 \
     --freeze '^(conv1|conv2).*' \
     --pretrained /home/hyunjoon/github/model_mxnet/mobilenetv1/mobilenetv1 \
     --epoch 0 \
