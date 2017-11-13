@@ -30,28 +30,32 @@ class MultiBoxMetric(mx.metric.EvalMetric):
         """
         Implementation of updating metrics
         """
-        # get generated multi label from network
-        cls_prob = mx.nd.pick(preds[0], preds[2], axis=1, keepdims=True).asnumpy()
-        # cls_prob = np.maximum(cls_prob, self.eps)
+        # # get generated multi label from network
+        # cls_prob = mx.nd.pick(preds[0], preds[2], axis=1, keepdims=True).asnumpy()
+        # # cls_prob = np.maximum(cls_prob, self.eps)
+        # cls_label = preds[2].asnumpy()
+        # loss = -np.log(np.maximum(cls_prob, self.eps))
+        #
+        # # focal loss reweighting
+        # gamma = float(cfg.train['focal_loss_gamma'])
+        # alpha = float(cfg.train['focal_loss_alpha'])
+        #
+        # # smoothed softmax
+        # if cfg.train['use_smooth_ce']:
+        #     w_reg = float(cfg.train['smooth_ce_lambda'])
+        #     th_prob = preds[-1].asnumpy()[0] #float(cfg.train['smooth_ce_th'])
+        #     loss1 = -cls_prob / th_prob - np.log(th_prob) + 1
+        #     idx = cls_prob < th_prob
+        #     loss[idx] = loss1[idx]
+        #     loss += th_prob * th_prob * w_reg * preds[0].shape[1]
+        #
+        # loss *= np.power(1 - cls_prob, gamma)
+        # loss[cls_label > 0] *= alpha
+        # loss[cls_label ==0] *= 1 - alpha
+        # loss *= (cls_label >= 0)
+
+        loss = preds[0].asnumpy()
         cls_label = preds[2].asnumpy()
-        loss = -np.log(np.maximum(cls_prob, self.eps))
-
-        # focal loss reweighting
-        gamma = float(cfg.train['focal_loss_gamma'])
-        alpha = float(cfg.train['focal_loss_alpha'])
-
-        # smoothed softmax
-        if cfg.train['use_smooth_ce']:
-            w_reg = float(cfg.train['smooth_ce_lambda'])
-            th_prob = preds[-1].asnumpy()[0] #float(cfg.train['smooth_ce_th'])
-            loss1 = -cls_prob / th_prob - np.log(th_prob) + 1
-            idx = cls_prob < th_prob
-            loss[idx] = loss1[idx]
-            loss += th_prob * th_prob * w_reg * preds[0].shape[1]
-
-        loss *= np.power(1 - cls_prob, gamma)
-        loss[cls_label > 0] *= alpha
-        loss[cls_label ==0] *= 1 - alpha
         loss *= (cls_label >= 0)
 
         self.sum_metric[0] += loss.sum()

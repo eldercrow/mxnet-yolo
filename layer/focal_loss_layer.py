@@ -20,6 +20,15 @@ class FocalLoss(mx.operator.CustomOp):
         '''
         self.assign(out_data[0], req[0], in_data[1])
 
+        # for debug
+        p = mx.nd.pick(in_data[1], in_data[2], axis=1, keepdims=True)
+        ce = -mx.nd.log(mx.nd.maximum(p, self.eps))
+
+        ce *= mx.nd.power(1 - p, self.gamma)
+        ce *= (in_data[2] > 0) * self.alpha + (in_data[2] == 0) * (1 - self.alpha)
+
+        self.assign(out_data[1], req[1], ce)
+
     def backward(self, req, out_grad, in_data, out_data, in_grad, aux):
         '''
         Reweight loss according to focal loss.
@@ -29,7 +38,7 @@ class FocalLoss(mx.operator.CustomOp):
 
         ce = -mx.nd.log(mx.nd.maximum(p, self.eps))
 
-        v = (p * self.gamma * ce) + 1 - p 
+        v = (p * self.gamma * ce) + 1 - p
         u = 1 - p if self.gamma == 2.0 else mx.nd.power(1 - p, self.gamma - 1.0)
         a = (cls_target > 0) * self.alpha + (cls_target == 0) * (1 - self.alpha)
         gf = v * u * a
@@ -65,10 +74,10 @@ class FocalLossProp(mx.operator.CustomOpProp):
         return ['cls_pred', 'cls_prob', 'cls_target']
 
     def list_outputs(self):
-        return ['cls_prob']
+        return ['cls_prob', 'cls_loss']
 
     def infer_shape(self, in_shape):
-        out_shape = [in_shape[0], ]
+        out_shape = [in_shape[0], in_shape[2]]
         return in_shape, out_shape, []
 
     def create_operator(self, ctx, shapes, dtypes):

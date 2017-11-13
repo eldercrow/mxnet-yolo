@@ -23,6 +23,22 @@ class SmoothedFocalLoss(mx.operator.CustomOp):
         '''
         self.assign(out_data[0], req[0], in_data[1])
 
+        # for debug
+        th_prob = in_data[3].asscalar()
+        p = mx.nd.pick(in_data[1], in_data[2], axis=1, keepdims=True)
+        ce = -mx.nd.log(mx.nd.maximum(p, self.eps))
+        sce = -p / th_prob - np.log(th_prob) + 1
+
+        # sce applied when p < th_prob and bg class
+        bg_mask = mx.nd.maximum(1 - in_data[2], 0)
+        mask = (p <= th_prob) * bg_mask
+        sce = (1 - mask) * ce + mask * sce # smoothed cross entropy
+
+        sce *= mx.nd.power(1 - p, self.gamma)
+        sce *= (in_data[2] > 0) * self.alpha + (in_data[2] == 0) * (1 - self.alpha)
+
+        self.assign(out_data[1], req[1], sce)
+
     def backward(self, req, out_grad, in_data, out_data, in_grad, aux):
         '''
         Reweight loss according to focal loss.
@@ -34,8 +50,8 @@ class SmoothedFocalLoss(mx.operator.CustomOp):
         sce = -p / th_prob - np.log(th_prob) + 1
 
         # sce applied when p < th_prob and bg class
-        # bg_mask = mx.nd.maximum(1 - in_data[2], 0)
-        mask = (p <= th_prob) #* bg_mask
+        bg_mask = mx.nd.maximum(1 - in_data[2], 0)
+        mask = (p <= th_prob) * bg_mask
         sce = (1 - mask) * ce + mask * sce # smoothed cross entropy
 
         thp = mx.nd.maximum(p, th_prob)
@@ -85,11 +101,11 @@ class SmoothedFocalLossProp(mx.operator.CustomOpProp):
         return ['cls_pred', 'cls_prob', 'cls_target', 'th_prob']
 
     def list_outputs(self):
-        return ['cls_prob']
+        return ['cls_prob', 'cls_loss']
 
     def infer_shape(self, in_shape):
         # in_shape[3] = (1,)
-        out_shape = [in_shape[0], ]
+        out_shape = [in_shape[0], in_shape[2]]
         return in_shape, out_shape
 
     # def infer_type(self, in_type):

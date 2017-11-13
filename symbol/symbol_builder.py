@@ -129,8 +129,8 @@ def get_symbol_train(network, num_classes,
     gamma = cfg.train['focal_loss_gamma']
     alpha = cfg.train['focal_loss_alpha']
     if not cfg.train['use_smooth_ce']:
-        cls_loss = mx.sym.Custom(cls_preds, cls_probs, cls_target,
-                op_type='focal_loss', name='cls_loss',
+        cls_preds, cls_loss = mx.sym.Custom(cls_preds, cls_probs, cls_target,
+                op_type='focal_loss', name='cls_preds',
                 gamma=gamma, alpha=alpha, normalize=True)
     else:
         th_prob = cfg.train['smooth_ce_th']
@@ -139,8 +139,8 @@ def get_symbol_train(network, num_classes,
         var_th_prob = mx.sym.var(name='th_prob_sce', shape=(1,), dtype=np.float32, \
                 init=mx.init.Constant(np.log(th_prob)))
         var_th_prob = mx.sym.exp(var_th_prob)
-        cls_loss = mx.sym.Custom(cls_preds, cls_probs, cls_target, var_th_prob,
-                op_type='smoothed_focal_loss', name='cls_loss',
+        cls_preds, cls_loss = mx.sym.Custom(cls_preds, cls_probs, cls_target, var_th_prob,
+                op_type='smoothed_focal_loss', name='cls_preds',
                 gamma=gamma, alpha=alpha, th_prob=th_prob, w_reg=w_reg, normalize=True)
 
     # IOU loss
@@ -156,7 +156,7 @@ def get_symbol_train(network, num_classes,
     loc_label = mx.sym.BlockGrad(loc_target_mask, name='loc_label')
 
     loc_preds = mx.sym.reshape(loc_preds, (0, -1))
-    det = mx.contrib.symbol.MultiBoxDetection(*[cls_loss, loc_preds, anchor_boxes], \
+    det = mx.contrib.symbol.MultiBoxDetection(*[cls_preds, loc_preds, anchor_boxes], \
         name="detection", nms_threshold=nms_thresh, force_suppress=force_suppress,
         variances=(0.1, 0.1, 0.2, 0.2), nms_topk=nms_topk)
     det = mx.symbol.MakeLoss(data=det, grad_scale=0, name="det_out")
