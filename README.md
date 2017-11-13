@@ -33,11 +33,12 @@ TODO:
 
 ### Getting started
 - ~~Build from source, this is required because this example is not merged, some
-custom operators are not presented in official MXNet. [Instructions](http://mxnet.io/get_started/install.html)
-- Install required packages: `cv2`, `matplotlib`~~
+custom operators are not presented in official MXNet. [Instructions](http://mxnet.io/get_started/install.html)~~
+- Install required packages: `cv2`, `matplotlib`
 
 ### Try the demo
 - Download the pretrained [model](https://github.com/zhreshold/mxnet-yolo/releases/download/0.1-alpha/yolo2_darknet19_416_pascalvoc0712_trainval.zip), and extract to `model/` directory.
+- Pretrained model for mobilenet can be found [here](https://github.com/KeyKy/mobilenet-mxnet).
 - Run
 ```
 # cd /paht/to/mxnet-yolo
