@@ -27,13 +27,14 @@ class FocalLoss(mx.operator.CustomOp):
         cls_target = mx.nd.reshape(in_data[2], (0, 1, -1))
         p = mx.nd.pick(in_data[1], cls_target, axis=1, keepdims=True)
 
-        n_class = in_data[0].shape[1]
+        ce = -mx.nd.log(mx.nd.maximum(p, self.eps))
 
-        u = 1 - p - (self.gamma * p * mx.nd.log(mx.nd.maximum(p, self.eps)))
-        v = 1 - p if self.gamma == 2.0 else mx.nd.power(1 - p, self.gamma - 1.0)
+        v = (p * self.gamma * ce) + 1 - p 
+        u = 1 - p if self.gamma == 2.0 else mx.nd.power(1 - p, self.gamma - 1.0)
         a = (cls_target > 0) * self.alpha + (cls_target == 0) * (1 - self.alpha)
         gf = v * u * a
 
+        n_class = in_data[0].shape[1]
         label_mask = mx.nd.one_hot(mx.nd.reshape(cls_target, (0, -1)), n_class,
                 on_value=1, off_value=0)
         label_mask = mx.nd.transpose(label_mask, (0, 2, 1))

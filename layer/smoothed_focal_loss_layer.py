@@ -16,7 +16,6 @@ class SmoothedFocalLoss(mx.operator.CustomOp):
         self.normalize = normalize
 
         self.eps = np.finfo(np.float32).eps
-        self.inited = False
 
     def forward(self, is_train, req, in_data, out_data, aux):
         '''
@@ -29,33 +28,28 @@ class SmoothedFocalLoss(mx.operator.CustomOp):
         Reweight loss according to focal loss.
         '''
         p = mx.nd.pick(in_data[1], in_data[2], axis=1, keepdims=True)
-        # p = mx.nd.maximum(p, self.eps)
-
-        # th_prob = self.th_prob
-        # if not self.inited:
-        #     self.inited = True
-        #     import ipdb
-        #     ipdb.set_trace()
         th_prob = in_data[3].asscalar()
 
         ce = -mx.nd.log(mx.nd.maximum(p, self.eps))
         sce = -p / th_prob - np.log(th_prob) + 1
 
-        mask = p > th_prob
-        sce = mask * ce + (1 - mask) * sce # smoothed cross entropy
+        # sce applied when p < th_prob and bg class
+        # bg_mask = mx.nd.maximum(1 - in_data[2], 0)
+        mask = (p <= th_prob) #* bg_mask
+        sce = (1 - mask) * ce + mask * sce # smoothed cross entropy
 
         thp = mx.nd.maximum(p, th_prob)
-        u = 1 - p if self.gamma == 2.0 else mx.nd.power(1 - p, self.gamma - 1.0)
         v = p * self.gamma * sce + (p / thp) * (1 - p)
+        u = 1 - p if self.gamma == 2.0 else mx.nd.power(1 - p, self.gamma - 1.0)
         a = (in_data[2] > 0) * self.alpha + (in_data[2] == 0) * (1 - self.alpha)
         gf = v * u * a
 
         n_class = in_data[1].shape[1]
-        alpha = mx.nd.one_hot(mx.nd.reshape(in_data[2], (0, -1)), n_class,
+        label_mask = mx.nd.one_hot(mx.nd.reshape(in_data[2], (0, -1)), n_class,
                 on_value=1, off_value=0)
-        alpha = mx.nd.transpose(alpha, (0, 2, 1))
+        label_mask = mx.nd.transpose(label_mask, (0, 2, 1))
 
-        g = (in_data[1] - alpha) * gf
+        g = (in_data[1] - label_mask) * gf
         g *= (in_data[2] >= 0)
 
         g_th = mx.nd.minimum(p, th_prob) / th_prob / th_prob - 1.0 / th_prob

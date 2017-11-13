@@ -8,7 +8,7 @@ python train.py \
     --batch-size 32 \
     --data-shape 416 \
     --freeze '^(conv1|conv2).*' \
-    --pretrained /home/hyunjoon/github/model_mxnet/mobilenetv1/mobilenetv1 \
+    --pretrained /home/hyunjoon/github/model_mxnet/mobilenet/mobilenet \
     --epoch 0 \
     --lr 1e-02 \
     --lr-steps 100,150 \

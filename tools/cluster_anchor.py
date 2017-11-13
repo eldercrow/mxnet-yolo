@@ -105,7 +105,7 @@ def clsuter_anchor(imdb, box_shapes, n_cluster, data_shape, th_iou=0.5):
             iou_cluster[:, i] = _compute_iou(bb, wh_label)
         midx = np.argmax(iou_cluster, axis=1)
         if prev_midx is not None and np.all(midx == prev_midx):
-            print k
+            print 'k-means converged in {} iterations.'.format(k)
             break
         prev_midx = midx.copy()
 

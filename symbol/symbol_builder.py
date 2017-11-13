@@ -119,7 +119,7 @@ def get_symbol_train(network, num_classes,
             get_preds(body, num_classes, use_global_stats)
 
     # get target GT label
-    th_small = 0.04 if not 'th_small' in kwargs else kwargs['th_small']
+    th_small = 0.01 if not 'th_small' in kwargs else kwargs['th_small']
     tmp = mx.sym.Custom(*[anchor_boxes, label, cls_probs], name='yolo_target',
             op_type='yolo_target', th_small=th_small)
     loc_target = tmp[0]
