@@ -12,7 +12,8 @@ The arXiv paper is available [here](https://arxiv.org/pdf/1612.08242.pdf).
 I am not interested in exact re-implementation of the original YOLO.
 If anyone is looking for that, check zhreshold's original repo.
 
-This code is not working yet.
+This code is now sorta working, but the mAP is low yet.
+You don't need to complie the custom mxnet to use this branch.
 
 Changes from the original algorithm:
 - [Focal loss](https://arxiv.org/abs/1708.02002) for classifier training.
@@ -31,9 +32,9 @@ TODO:
 ![demo1](https://user-images.githubusercontent.com/3307514/28980832-29bb0262-7904-11e7-83e3-a5fec65e0c70.png)
 
 ### Getting started
-- Build from source, this is required because this example is not merged, some
+- ~~Build from source, this is required because this example is not merged, some
 custom operators are not presented in official MXNet. [Instructions](http://mxnet.io/get_started/install.html)
-- Install required packages: `cv2`, `matplotlib`
+- Install required packages: `cv2`, `matplotlib`~~
 
 ### Try the demo
 - Download the pretrained [model](https://github.com/zhreshold/mxnet-yolo/releases/download/0.1-alpha/yolo2_darknet19_416_pascalvoc0712_trainval.zip), and extract to `model/` directory.
