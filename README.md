@@ -12,7 +12,7 @@ The arXiv paper is available [here](https://arxiv.org/pdf/1612.08242.pdf).
 I am not interested in exact re-implementation of the original YOLO.
 If anyone is looking for that, check zhreshold's original repo.
 
-This code is now sorta working, but the mAP is low yet.
+This code is now sorta working (training only), but the mAP is low yet.
 You don't need to complie the custom mxnet to use this branch.
 
 Changes from the original algorithm:
