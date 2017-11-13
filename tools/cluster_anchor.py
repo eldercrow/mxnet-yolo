@@ -130,10 +130,14 @@ def clsuter_anchor(imdb, box_shapes, n_cluster, data_shape, th_iou=0.5):
     cshapes = cshapes[sidx, :] * data_shape
 
     np.set_printoptions(suppress=True)
+
     print 'cluster centers after k-means.'
     print np.round(cshapes, 3)
+
+    cratio = np.round(cshapes / 32.0, 3)
     print 'divided by 32, for anchor layer parameter.'
-    print np.round(cshapes / 32.0, 3)
+    for c in cratio:
+        print '\t{}, {},'.format(c[0], c[1])
     # print 'squared cluster size and ratio.'
     # print np.round(csr, 3)
     print 'mean IOU = {}.'.format(mean_iou)

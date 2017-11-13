@@ -11,8 +11,11 @@ python train.py \
     --pretrained /home/hyunjoon/github/model_mxnet/mobilenetv1/mobilenetv1 \
     --epoch 0 \
     --lr 1e-02 \
+    --lr-steps 100,150 \
+    --lr-factor 0.1 \
     --end-epoch 300 \
     --frequent 100 \
+    --nms 0.35 \
     --gpus 0,1
     # --wd 1e-04 \
     # --lr-steps 3,3,4 \
