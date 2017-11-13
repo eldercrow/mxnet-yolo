@@ -97,6 +97,8 @@ class YoloTarget(mx.operator.CustomOp):
                     continue
                 # at least one positive sample
                 pidx = [np.argmax(iou)]
+            if len(pidx) > 3:
+                pidx = np.random.choice(pidx, 3, replace=False)
 
             # map ridx first, and then pidx
             target_cls[ridx] = -1

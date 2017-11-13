@@ -47,7 +47,7 @@ def get_preds(body, num_classes, use_global_stats):
 
     # class prediction
     cls_preds = depthwise_unit(body, '_cls_pred',
-            nf_dw=1024, nf_sep=0, kernel=(5, 5), pad=(2, 2),
+            nf_dw=2048, nf_sep=0, kernel=(5, 5), pad=(2, 2),
             use_global_stats=use_global_stats)
 
     cls_pred_conv_bias = mx.sym.var(name='cls_pred_conv_bias',
@@ -57,7 +57,7 @@ def get_preds(body, num_classes, use_global_stats):
 
     # bb and iou prediction
     loc_preds = depthwise_unit(body, '_loc_pred',
-            nf_dw=1024, nf_sep=0, kernel=(3, 3), pad=(1, 1),
+            nf_dw=2048, nf_sep=0, kernel=(3, 3), pad=(1, 1),
             use_global_stats=use_global_stats)
     loc_preds = mx.sym.Convolution(loc_preds, name='loc_pred_conv',
             num_filter=num_anchor*4, kernel=(1, 1), pad=(0, 0))

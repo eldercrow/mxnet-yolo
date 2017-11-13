@@ -12,7 +12,7 @@ def conv_bn_relu(data, name, \
     conv = mx.sym.Convolution(data, name=conv_name, weight=conv_w, bias=conv_b, num_filter=num_filter, \
             kernel=kernel, pad=pad, stride=stride, num_group=num_group, no_bias=True)
     bn = mx.sym.BatchNorm(conv, name=conv_name+'_bn', \
-            use_global_stats=use_global_stats, fix_gamma=False, eps=1e-04)
+            use_global_stats=use_global_stats, fix_gamma=False, eps=1e-04, momentum=0.99)
     relu = mx.sym.Activation(bn, name='relu'+name, act_type='relu')
     return relu
 
