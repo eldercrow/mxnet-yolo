@@ -82,7 +82,7 @@ def parse_args():
                         car, cat, chair, cow, diningtable, dog, horse, motorbike, \
                         person, pottedplant, sheep, sofa, train, tvmonitor',
                         help='string of comma separated names, or text filename')
-    parser.add_argument('--nms', dest='nms_thresh', type=float, default=0.45,
+    parser.add_argument('--nms', dest='nms_thresh', type=float, default=0.35,
                         help='non-maximum suppression threshold')
     parser.add_argument('--overlap', dest='overlap_thresh', type=float, default=0.5,
                         help='evaluation overlap threshold')

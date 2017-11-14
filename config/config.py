@@ -41,16 +41,26 @@ cfg.ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 #         9.701, 9.64, \
 #         ]
 cfg.anchor_shapes = [ \
-        0.575, 1.049,
-        1.783, 1.479,
-        1.059, 3.009,
-        3.76, 2.864,
-        1.997, 5.688,
-        4.761, 5.665,
-        3.509, 9.464,
-        10.244, 5.254,
-        6.765, 10.224,
-        11.749, 11.258,
+        0.41, 0.677,
+        0.591, 1.665,
+        1.17, 0.89,
+        0.858, 3.29,
+        1.487, 1.974,
+        2.696, 1.344,
+        1.811, 3.469,
+        3.237, 2.853,
+        1.482, 6.317,
+        2.691, 5.028,
+        7.234, 2.404,
+        4.998, 4.427,
+        2.672, 9.188,
+        3.905, 6.838,
+        6.725, 6.928,
+        10.196, 4.643,
+        4.786, 10.235,
+        7.644, 10.883,
+        10.901, 7.802,
+        11.525, 11.587,
         ]
 
 # training configs
@@ -65,7 +75,7 @@ cfg.train.rand_crop_samplers = [
 cfg.train.crop_emit_mode = 'center'
 # cfg.train.emit_overlap_thresh = 0.4
 # random padding
-cfg.train.rand_pad = RandPadder(rand_pad_prob=0.5, max_pad_scale=2.0)
+cfg.train.rand_pad = RandPadder(rand_pad_prob=0.5, max_pad_scale=3.0)
 # random color jitter
 cfg.train.color_jitter = ColorJitter(random_hue_prob=0.5, random_saturation_prob=0.5,
     random_illumination_prob=0.5, random_contrast_prob=0.5)
@@ -75,10 +85,11 @@ cfg.train.shuffle = True
 cfg.train.seed = 233
 cfg.train.preprocess_threads = 48
 
-cfg.train.focal_loss_alpha = 1.0/4.0
+cfg.train.focal_loss_alpha = 2.0/4.0
+cfg.train.focal_loss_alpha_rpn = 1.0/4.0
 cfg.train.focal_loss_gamma = 2.0
 cfg.train.smoothl1_weight = 1.0
-cfg.train.use_smooth_ce = True
+cfg.train.use_smooth_ce = False
 cfg.train.smooth_ce_th = 1e-02
 cfg.train.smooth_ce_lambda = 1.0
 

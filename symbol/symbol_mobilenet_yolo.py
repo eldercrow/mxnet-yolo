@@ -5,7 +5,7 @@ Redmon, Joseph, and Ali Farhadi. "YOLO9000: Better, Faster, Stronger."
 """
 import mxnet as mx
 from symbol_mobilenet import get_symbol as get_mobilenet
-from symbol_mobilenet import depthwise_unit, subpixel_downsample
+from symbol_mobilenet import conv_bn_relu, depthwise_unit, subpixel_downsample
 
 def get_symbol(num_classes, use_global_stats):
     #
@@ -14,23 +14,40 @@ def get_symbol(num_classes, use_global_stats):
     conv5_5 = bone.get_internals()['relu5_5_sep_output']
     conv6 = bone.get_internals()['relu6_sep_output']
 
-    # extra layers
-    conv7_1 = depthwise_unit(conv6, '7_1',
-            nf_dw=1024, nf_sep=1024, kernel=(3, 3), pad=(1, 1),
-            use_global_stats=use_global_stats)
-    conv7_2 = depthwise_unit(conv7_1, '7_2',
-            nf_dw=1024, nf_sep=1024, kernel=(3, 3), pad=(1, 1),
-            use_global_stats=use_global_stats)
-
-    # re-organze conv5_5 and concat conv7_2
+    # downsample conv5 and concat
     conv5_6 = subpixel_downsample(conv5_5, 512, 2, 2)
-    concat = mx.sym.concat(conv5_6, conv7_2)
-    # concat = conv7_2
-    conv8_1 = depthwise_unit(concat, '8_1',
-            nf_dw=1024+2048, nf_sep=1024, kernel=(3, 3), pad=(1, 1),
+
+    concat6 = mx.sym.concat(conv5_6, conv6, name='concat_6')
+
+    # rpn
+    rpn_1 = conv_bn_relu(concat6, 'rpn_1',
+            num_filter=256, kernel=(1, 1), pad=(0, 0),
             use_global_stats=use_global_stats)
 
-    return conv8_1
+    # extra layers
+    conv7_1 = conv_bn_relu(concat6, '7_1',
+            num_filter=768, kernel=(1, 1), pad=(0, 0),
+            use_global_stats=use_global_stats)
+    concat7 = mx.sym.concat(rpn_1, conv7_1, name='concat_7')
+
+    conv8_1 = depthwise_unit(concat7, '8_1',
+            nf_dw=1024, nf_sep=1024, kernel=(3, 3), pad=(1, 1),
+            use_global_stats=use_global_stats)
+    conv8_2 = depthwise_unit(conv8_1, '8_2',
+            nf_dw=1024, nf_sep=1024, kernel=(3, 3), pad=(1, 1),
+            use_global_stats=use_global_stats)
+    # conv7_3 = depthwise_unit(conv7_2, '7_3',
+    #         nf_dw=1024, nf_sep=1024, kernel=(3, 3), pad=(1, 1),
+    #         use_global_stats=use_global_stats)
+    #
+    # # re-organze conv5_5 and concat conv7_2
+    # concat = mx.sym.concat(conv5_6, conv7_2)
+    # # concat = conv7_2
+    # conv8_1 = depthwise_unit(concat, '8_1',
+    #         nf_dw=1024+2048, nf_sep=1024, kernel=(3, 3), pad=(1, 1),
+    #         use_global_stats=use_global_stats)
+
+    return rpn_1, conv8_2
     #
     # th_small = 0.04 if not 'th_small' in kwargs else kwargs['th_small']
     # cls_probs = mx.sym.SoftmaxActivation(cls_preds, mode='channel')

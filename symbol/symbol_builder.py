@@ -4,8 +4,9 @@ from layer.anchor_box_layer import *
 from layer.yolo_target_layer import *
 from layer.dummy_layer import *
 from layer.focal_loss_layer import *
+from layer.rpn_focal_loss_layer import *
 from layer.smoothed_focal_loss_layer import *
-# from layer.multibox_detection_layer import *
+from layer.multibox_detection_layer import *
 from layer.roi_transform_layer import *
 from layer.iou_loss_layer import *
 from config.config import cfg
@@ -38,16 +39,26 @@ def import_module(module_name):
     return importlib.import_module(module_name)
 
 
-def get_preds(body, num_classes, use_global_stats):
+def get_preds(body_rpn, body, num_classes, use_global_stats):
     #
     anchor_shapes = cfg['anchor_shapes']
     num_anchor = len(anchor_shapes) / 2
 
     num_classes += 1
 
+    # rpn (objectness) prediction
+    rpn_preds = depthwise_unit(body_rpn, '_rpn_pred',
+            nf_dw=256, nf_sep=0, kernel=(3, 3), pad=(1, 1),
+            use_global_stats=use_global_stats)
+
+    rpn_pred_conv_bias = mx.sym.var(name='rpn_pred_conv_bias',
+            init=FocalBiasInit(2, 0.01))
+    rpn_preds = mx.sym.Convolution(rpn_preds, name='rpn_pred_conv', bias=rpn_pred_conv_bias,
+            num_filter=num_anchor*2, kernel=(1, 1), pad=(0, 0))
+
     # class prediction
     cls_preds = depthwise_unit(body, '_cls_pred',
-            nf_dw=2048, nf_sep=0, kernel=(5, 5), pad=(2, 2),
+            nf_dw=1024, nf_sep=0, kernel=(5, 5), pad=(2, 2),
             use_global_stats=use_global_stats)
 
     cls_pred_conv_bias = mx.sym.var(name='cls_pred_conv_bias',
@@ -57,7 +68,7 @@ def get_preds(body, num_classes, use_global_stats):
 
     # bb and iou prediction
     loc_preds = depthwise_unit(body, '_loc_pred',
-            nf_dw=2048, nf_sep=0, kernel=(3, 3), pad=(1, 1),
+            nf_dw=1024, nf_sep=0, kernel=(3, 3), pad=(1, 1),
             use_global_stats=use_global_stats)
     loc_preds = mx.sym.Convolution(loc_preds, name='loc_pred_conv',
             num_filter=num_anchor*4, kernel=(1, 1), pad=(0, 0))
@@ -66,6 +77,11 @@ def get_preds(body, num_classes, use_global_stats):
             name='yolo_anchors', shapes=anchor_shapes) # (1, n_anchor, 4)
 
     # reshape everything
+    rpn_preds = mx.sym.transpose(rpn_preds, (0, 2, 3, 1))
+    rpn_preds = mx.sym.reshape(rpn_preds, (0, -1, 2))
+    rpn_preds = mx.sym.transpose(rpn_preds, (0, 2, 1)) # (n_batch, n_class, n_anchor)
+    rpn_probs = mx.sym.SoftmaxActivation(rpn_preds, mode='channel')
+
     cls_preds = mx.sym.transpose(cls_preds, (0, 2, 3, 1))
     cls_preds = mx.sym.reshape(cls_preds, (0, -1, num_classes))
     cls_preds = mx.sym.transpose(cls_preds, (0, 2, 1)) # (n_batch, n_class, n_anchor)
@@ -74,7 +90,7 @@ def get_preds(body, num_classes, use_global_stats):
     loc_preds = mx.sym.transpose(loc_preds, (0, 2, 3, 1))
     loc_preds = mx.sym.reshape(loc_preds, (0, -1, 4)) # (n_batch, n_anchor, 4)
 
-    return cls_preds, cls_probs, loc_preds, anchor_boxes
+    return rpn_preds, rpn_probs, cls_preds, cls_probs, loc_preds, anchor_boxes
 
 
 def get_symbol_train(network, num_classes,
@@ -113,10 +129,10 @@ def get_symbol_train(network, num_classes,
         kwargs['use_global_stats'] = False
 
     # sys.path.append(os.path.join(cfg.ROOT_DIR, 'symbol'))
-    body = import_module(network).get_symbol(num_classes, **kwargs)
+    body_rpn, body = import_module(network).get_symbol(num_classes, **kwargs)
 
-    cls_preds, cls_probs, loc_preds, anchor_boxes = \
-            get_preds(body, num_classes, use_global_stats)
+    rpn_preds, rpn_probs, cls_preds, cls_probs, loc_preds, anchor_boxes = \
+            get_preds(body_rpn, body, num_classes, use_global_stats)
 
     # get target GT label
     th_small = 0.01 if not 'th_small' in kwargs else kwargs['th_small']
@@ -125,13 +141,18 @@ def get_symbol_train(network, num_classes,
     loc_target = tmp[0]
     loc_target_mask = tmp[1]
     cls_target = tmp[2]
+    rpn_target = tmp[3]
 
     gamma = cfg.train['focal_loss_gamma']
     alpha = cfg.train['focal_loss_alpha']
+    alpha_rpn = cfg.train['focal_loss_alpha_rpn']
     if not cfg.train['use_smooth_ce']:
-        cls_preds, cls_loss = mx.sym.Custom(cls_preds, cls_probs, cls_target,
-                op_type='focal_loss', name='cls_preds',
+        cls_preds, cls_loss = mx.sym.Custom(cls_preds, cls_probs, cls_target, rpn_preds, rpn_probs,
+                op_type='rpn_focal_loss', name='cls_loss',
                 gamma=gamma, alpha=alpha, normalize=True)
+        rpn_preds, rpn_loss = mx.sym.Custom(rpn_preds, rpn_probs, rpn_target,
+                op_type='focal_loss', name='rpn_loss',
+                gamma=gamma, alpha=alpha_rpn, normalize=True)
     else:
         th_prob = cfg.train['smooth_ce_th']
         w_reg = cfg.train['smooth_ce_lambda'] * float(num_classes)
@@ -140,7 +161,7 @@ def get_symbol_train(network, num_classes,
                 init=mx.init.Constant(np.log(th_prob)))
         var_th_prob = mx.sym.exp(var_th_prob)
         cls_preds, cls_loss = mx.sym.Custom(cls_preds, cls_probs, cls_target, var_th_prob,
-                op_type='smoothed_focal_loss', name='cls_preds',
+                op_type='smoothed_focal_loss', name='cls_loss',
                 gamma=gamma, alpha=alpha, th_prob=th_prob, w_reg=w_reg, normalize=True)
 
     # IOU loss
@@ -156,13 +177,19 @@ def get_symbol_train(network, num_classes,
     loc_label = mx.sym.BlockGrad(loc_target_mask, name='loc_label')
 
     loc_preds = mx.sym.reshape(loc_preds, (0, -1))
-    det = mx.contrib.symbol.MultiBoxDetection(*[cls_preds, loc_preds, anchor_boxes], \
-        name="detection", nms_threshold=nms_thresh, force_suppress=force_suppress,
-        variances=(0.1, 0.1, 0.2, 0.2), nms_topk=nms_topk)
+    #
+    det = mx.symbol.Custom(cls_preds, loc_preds_det, anchor_boxes, rpn_preds, \
+            name='detection', op_type='multibox_detection',
+            th_nms=nms_thresh, nms_topk=nms_topk, has_rpn=True)
+    #
+    # det = mx.contrib.symbol.MultiBoxDetection(*[cls_preds, loc_preds, anchor_boxes], \
+    #     name="detection", nms_threshold=nms_thresh, force_suppress=force_suppress,
+    #     variances=(0.1, 0.1, 0.2, 0.2), nms_topk=nms_topk)
+    #
     det = mx.symbol.MakeLoss(data=det, grad_scale=0, name="det_out")
 
     # group output
-    out = [cls_loss, loc_loss, cls_label, loc_label, det]
+    out = [cls_loss, loc_loss, cls_label, loc_label, det, rpn_loss]
     if cfg.train['use_smooth_ce']:
         out.append(mx.sym.BlockGrad(var_th_prob))
     return mx.sym.Group(out)
@@ -175,10 +202,12 @@ def get_symbol(network, num_classes,
     use_global_stats = True
     kwargs['use_global_stats'] = True
 
-    body = import_module(network).get_symbol(num_classes, **kwargs)
+    body_rpn, body = import_module(network).get_symbol(num_classes, **kwargs)
 
-    cls_preds, cls_probs, loc_preds, anchor_boxes = \
-            get_preds(body, num_classes, use_global_stats)
+    rpn_preds, rpn_probs, cls_preds, cls_probs, loc_preds, anchor_boxes = \
+            get_preds(body_rpn, body, num_classes, use_global_stats)
+    # cls_preds, cls_probs, loc_preds, anchor_boxes = \
+    #         get_preds(body, num_classes, use_global_stats)
 
     loc_preds_det = mx.sym.reshape(loc_preds, (0, -1))
     out = mx.contrib.symbol.MultiBoxDetection(*[cls_probs, loc_preds_det, anchor_boxes], \

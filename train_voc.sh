@@ -3,16 +3,16 @@ python train.py \
     --val-path ./data/VOCdevkit/val.rec \
     --num-class 20 \
     --class-names ./dataset/names/pascal_voc.names \
-    --network symbol_mobilenetv4_yolo \
+    --network symbol_mobilenet_yolo \
     --label-width 350 \
-    --batch-size 20 \
-    --data-shape 448 \
+    --batch-size 32 \
+    --data-shape 416 \
     --min-random-shape 320 \
-    --max-random-shape 576 \
-    --random-shape-step 64 \
-    --freeze '^(conv1|conv2).*' \
-    --pretrained /home/hyunjoon/github/model_mxnet/mobilenetv4/mobilenetv4_imagenet \
-    --epoch 109 \
+    --max-random-shape 512 \
+    --random-shape-step 32 \
+    --pretrained /home/hyunjoon/github/model_mxnet/mobilenetv1/mobilenetv1 \
+    --epoch 0 \
+    --freeze '' \
     --lr 1e-03 \
     --lr-steps 100,150 \
     --lr-factor 0.1 \
