@@ -18,7 +18,7 @@ python train.py \
     --lr-factor 0.1 \
     --end-epoch 300 \
     --frequent 100 \
-    --nms 0.35 \
+    --nms 0.45 \
     --gpus 0,1
     # --wd 1e-04 \
     # --lr-steps 3,3,4 \

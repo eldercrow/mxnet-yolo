@@ -41,10 +41,13 @@ class MultiBoxDetection(mx.operator.CustomOp):
             pcls = probs_cls[nn]  # (n_classes, n_anchors)
             if self.has_rpn:
                 prpn = probs_rpn[nn]
-                pcls[0] *= prpn[0]
+                pcls[0] = pcls[0] + prpn[0] - pcls[0]*prpn[0]
                 pcls[1:] *= prpn[1:]
             preg = preds_reg[nn]  # (n_anchor, 4)
             out_i[0] = mx.nd.argmax(pcls, axis=0) - 1
+            # if mx.nd.max(out_i[0]) >= 0:
+            #     import ipdb
+            #     ipdb.set_trace()
             max_pcls = mx.nd.max(pcls, axis=0)
             out_i[1] = max_pcls * (out_i[0] >= 0) * (max_pcls > self.th_pos)
 
@@ -143,7 +146,7 @@ def _transform_roi(reg, anc, variances):
 @mx.operator.register("multibox_detection")
 class MultiBoxDetectionProp(mx.operator.CustomOpProp):
     def __init__(self,
-                 th_pos=0.1,
+                 th_pos=0.01,
                  th_nms=0.35,
                  nms_topk=400,
                  variances=(0.1, 0.1, 0.2, 0.2),
