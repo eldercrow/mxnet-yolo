@@ -9,6 +9,7 @@ from layer.smoothed_focal_loss_layer import *
 from layer.multibox_detection_layer import *
 from layer.roi_transform_layer import *
 from layer.iou_loss_layer import *
+from layer.merge_rpn_cls_layer import *
 from config.config import cfg
 
 from symbol.symbol_mobilenet import depthwise_unit
@@ -49,7 +50,7 @@ def get_preds(body_rpn, body, num_classes, use_global_stats):
     # rpn (objectness) prediction
     rpn_preds = depthwise_unit(body_rpn, '_rpn_pred',
             nf_dw=256, nf_sep=0, kernel=(3, 3), pad=(1, 1),
-            use_global_stats=use_global_stats)
+            no_act=True, use_global_stats=use_global_stats)
 
     rpn_pred_conv_bias = mx.sym.var(name='rpn_pred_conv_bias',
             init=FocalBiasInit(2, 0.01))
@@ -59,7 +60,7 @@ def get_preds(body_rpn, body, num_classes, use_global_stats):
     # class prediction
     cls_preds = depthwise_unit(body, '_cls_pred',
             nf_dw=1024, nf_sep=0, kernel=(5, 5), pad=(2, 2),
-            use_global_stats=use_global_stats)
+            no_act=True, use_global_stats=use_global_stats)
 
     cls_pred_conv_bias = mx.sym.var(name='cls_pred_conv_bias',
             init=FocalBiasInit(num_classes, 0.01))
@@ -69,7 +70,7 @@ def get_preds(body_rpn, body, num_classes, use_global_stats):
     # bb and iou prediction
     loc_preds = depthwise_unit(body, '_loc_pred',
             nf_dw=1024, nf_sep=0, kernel=(3, 3), pad=(1, 1),
-            use_global_stats=use_global_stats)
+            no_act=True, use_global_stats=use_global_stats)
     loc_preds = mx.sym.Convolution(loc_preds, name='loc_pred_conv',
             num_filter=num_anchor*4, kernel=(1, 1), pad=(0, 0))
 
@@ -177,14 +178,17 @@ def get_symbol_train(network, num_classes,
     loc_label = mx.sym.BlockGrad(loc_target_mask, name='loc_label')
 
     loc_preds = mx.sym.reshape(loc_preds, (0, -1))
+
+    cls_merged = mx.sym.Custom(cls_preds, rpn_preds,
+            name='merge_rpn_cls', op_type='merge_rpn_cls')
     #
-    det = mx.symbol.Custom(cls_preds, loc_preds_det, anchor_boxes, rpn_preds, \
-            name='detection', op_type='multibox_detection',
-            th_nms=nms_thresh, nms_topk=nms_topk, has_rpn=True)
+    # det = mx.symbol.Custom(cls_preds, loc_preds_det, anchor_boxes, rpn_preds, \
+    #         name='detection', op_type='multibox_detection',
+    #         th_nms=nms_thresh, nms_topk=nms_topk, has_rpn=True)
     #
-    # det = mx.contrib.symbol.MultiBoxDetection(*[cls_preds, loc_preds, anchor_boxes], \
-    #     name="detection", nms_threshold=nms_thresh, force_suppress=force_suppress,
-    #     variances=(0.1, 0.1, 0.2, 0.2), nms_topk=nms_topk)
+    det = mx.contrib.symbol.MultiBoxDetection(*[cls_merged, loc_preds, anchor_boxes], \
+        name="detection", nms_threshold=nms_thresh, force_suppress=force_suppress,
+        variances=(0.1, 0.1, 0.2, 0.2), nms_topk=nms_topk)
     #
     det = mx.symbol.MakeLoss(data=det, grad_scale=0, name="det_out")
 

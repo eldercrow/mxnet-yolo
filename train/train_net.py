@@ -307,17 +307,17 @@ def train_net(net, train_path, num_classes, batch_size,
 
         learning_rate, lr_scheduler = get_lr_scheduler(learning_rate, lr_refactor_step,
             lr_refactor_ratio, num_example, batch_size, begin_epoch)
-        optimizer_params={'learning_rate':learning_rate,
-                          'wd':weight_decay,
-                          'lr_scheduler':lr_scheduler,
-                          'clip_gradient':10,
-                          'rescale_grad': 1.0 }
         # optimizer_params={'learning_rate':learning_rate,
-        #                   'momentum':momentum,
         #                   'wd':weight_decay,
         #                   'lr_scheduler':lr_scheduler,
         #                   'clip_gradient':10,
         #                   'rescale_grad': 1.0 }
+        optimizer_params={'learning_rate':learning_rate,
+                          'momentum':momentum,
+                          'wd':weight_decay,
+                          'lr_scheduler':lr_scheduler,
+                          'clip_gradient':10,
+                          'rescale_grad': 1.0 }
 
         # more informatic parameter setting
         if not mod.binded:
@@ -330,7 +330,7 @@ def train_net(net, train_path, num_classes, batch_size,
                 validation_metric=valid_metric,
                 batch_end_callback=batch_end_callback,
                 epoch_end_callback=epoch_end_callback,
-                optimizer='nadam',
+                optimizer='sgd',
                 optimizer_params=optimizer_params,
                 begin_epoch=begin,
                 num_epoch=end,

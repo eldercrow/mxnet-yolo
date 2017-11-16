@@ -26,11 +26,10 @@ def get_symbol(num_classes, use_global_stats):
 
     # extra layers
     conv7_1 = conv_bn_relu(concat6, '7_1',
-            num_filter=768, kernel=(1, 1), pad=(0, 0),
+            num_filter=1024, kernel=(1, 1), pad=(0, 0),
             use_global_stats=use_global_stats)
-    concat7 = mx.sym.concat(rpn_1, conv7_1, name='concat_7')
 
-    conv8_1 = depthwise_unit(concat7, '8_1',
+    conv8_1 = depthwise_unit(conv7_1, '8_1',
             nf_dw=1024, nf_sep=1024, kernel=(3, 3), pad=(1, 1),
             use_global_stats=use_global_stats)
     conv8_2 = depthwise_unit(conv8_1, '8_2',
