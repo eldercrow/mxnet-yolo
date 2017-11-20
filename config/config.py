@@ -85,8 +85,8 @@ cfg.train.shuffle = True
 cfg.train.seed = 233
 cfg.train.preprocess_threads = 48
 
-cfg.train.focal_loss_alpha = 2.0/4.0
-cfg.train.focal_loss_alpha_rpn = 1.0/4.0
+cfg.train.focal_loss_alpha = 0.25
+cfg.train.focal_loss_alpha_rpn = 0.5
 cfg.train.focal_loss_gamma = 2.0
 cfg.train.smoothl1_weight = 1.0
 cfg.train.use_smooth_ce = False

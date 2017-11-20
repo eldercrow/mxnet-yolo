@@ -77,7 +77,7 @@ class YoloTarget(mx.operator.CustomOp):
         for i, label in enumerate(labels):
             gt_cls = int(label[0]) + 1
             #
-            lsq = label[1:] #_autofit_ratio(label[1:])
+            lsq = _autofit_ratio(label[1:], max_ratio=2.5)
             #
             iou = _compute_iou(lsq, self.anchors_t, self.area_anchors_t)
 

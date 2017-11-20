@@ -48,7 +48,7 @@ def get_preds(body_rpn, body, num_classes, use_global_stats):
     num_classes += 1
 
     # rpn (objectness) prediction
-    rpn_preds = depthwise_unit(body_rpn, '_rpn_pred',
+    rpn_preds = depthwise_unit(body_rpn, 'rpn_pred_',
             nf_dw=256, nf_sep=0, kernel=(3, 3), pad=(1, 1),
             no_act=True, use_global_stats=use_global_stats)
 
@@ -58,7 +58,7 @@ def get_preds(body_rpn, body, num_classes, use_global_stats):
             num_filter=num_anchor*2, kernel=(1, 1), pad=(0, 0))
 
     # class prediction
-    cls_preds = depthwise_unit(body, '_cls_pred',
+    cls_preds = depthwise_unit(body, 'cls_pred_',
             nf_dw=1024, nf_sep=0, kernel=(5, 5), pad=(2, 2),
             no_act=True, use_global_stats=use_global_stats)
 
@@ -68,7 +68,7 @@ def get_preds(body_rpn, body, num_classes, use_global_stats):
             num_filter=num_anchor*num_classes, kernel=(1, 1), pad=(0, 0))
 
     # bb and iou prediction
-    loc_preds = depthwise_unit(body, '_loc_pred',
+    loc_preds = depthwise_unit(body, 'loc_pred_',
             nf_dw=1024, nf_sep=0, kernel=(3, 3), pad=(1, 1),
             no_act=True, use_global_stats=use_global_stats)
     loc_preds = mx.sym.Convolution(loc_preds, name='loc_pred_conv',

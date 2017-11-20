@@ -196,27 +196,31 @@ def _per_class_refinement(cshapes, cls_label, wh_label, n_class):
     cluster_ids = [np.where(midx == i)[0] for i in range(n_cluster)]
     class_ids = [np.where(cls_label == i)[0] for i in range(n_class)]
 
-    per_cls_ratio = np.zeros((n_class, 2))
-    for i in range(n_class):
-        cls_cshapes = cshapes[midx[class_ids[i]], :]
-        cls_wh = wh_label[class_ids[i], :]
-
-        per_cls_ratio[i] = np.exp(np.mean(np.log(cls_wh / cls_cshapes), axis=0))
-    return per_cls_ratio
-
-    # per_cls_shapes = np.zeros((n_cluster, n_class, 2))
-    # for i in range(n_cluster):
-    #     # for each cluster
-    #     cshape = cshapes[i]
     #
-    #     for j in range(n_class):
-    #         idx = np.intersect1d(cluster_ids[i], class_ids[j])
-    #         if idx.size == 0:
-    #             per_cls_shapes[i, j, :] = cshape
-    #         else:
-    #             per_cls_shapes[i, j, :] = _update_bb(cshape, wh_label[idx, :])
+    # per_cls_ratio = np.zeros((n_class, 2))
+    # for i in range(n_class):
+    #     cls_cshapes = cshapes[midx[class_ids[i]], :]
+    #     cls_wh = wh_label[class_ids[i], :]
     #
-    # return per_cls_shapes
+    #     per_cls_ratio[i] = np.exp(np.mean(np.log(cls_wh / cls_cshapes), axis=0))
+    # return per_cls_ratio
+    #
+    per_cls_shapes = np.zeros((n_cluster, n_class, 2))
+    for i in range(n_cluster):
+        # for each cluster
+        cshape = cshapes[i]
+
+        for j in range(n_class):
+            idx = np.intersect1d(cluster_ids[i], class_ids[j])
+            if idx.size == 0:
+                per_cls_shapes[i, j, :] = cshape
+            else:
+                cshape = np.reshape(cshape, (1, -1))
+                per_cls_shapes[i, j, :] = np.exp(np.mean(np.log(wh_label[idx, :] / cshape), axis=0))
+                # per_cls_shapes[i, j, :] = _update_bb(cshape, wh_label[idx, :])
+
+    return per_cls_shapes
+    #
 
 
 def parse_args():

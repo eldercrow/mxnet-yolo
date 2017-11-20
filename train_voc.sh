@@ -10,16 +10,17 @@ python train.py \
     --min-random-shape 320 \
     --max-random-shape 512 \
     --random-shape-step 32 \
-    --pretrained /home/hyunjoon/github/model_mxnet/mobilenet/mobilenet \
-    --epoch 0 \
+    --resume 80 \
     --freeze '' \
-    --lr 1e-02 \
-    --lr-steps 100,150 \
+    --lr 5e-04 \
+    --lr-steps 80,100,120 \
     --lr-factor 0.1 \
     --end-epoch 300 \
     --frequent 100 \
     --nms 0.45 \
     --gpus 0,1
+    # --pretrained /home/hyunjoon/github/model_mxnet/mobilenet/mobilenet \
+    # --epoch 0 \
     # --wd 1e-04 \
     # --lr-steps 3,3,4 \
     # --lr-factor 0.1 \

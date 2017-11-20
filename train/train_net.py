@@ -289,6 +289,19 @@ def train_net(net, train_path, num_classes, batch_size,
         fit_ends = [end_epoch]
         data_shapes = [data_shape]
 
+    learning_rate, lr_scheduler = get_lr_scheduler(learning_rate, lr_refactor_step,
+        lr_refactor_ratio, num_example, batch_size, begin_epoch)
+    optimizer_params={'learning_rate':learning_rate,
+                      'wd':weight_decay,
+                      'lr_scheduler':lr_scheduler,
+                      'clip_gradient':10,
+                      'rescale_grad': 1.0 }
+    # optimizer_params={'learning_rate':learning_rate,
+    #                   'momentum':momentum,
+    #                   'wd':weight_decay,
+    #                   'lr_scheduler':lr_scheduler,
+    #                   'clip_gradient':10,
+    #                   'rescale_grad': 1.0 }
     for begin, end in zip(fit_begins, fit_ends):
         if len(data_shapes) == 1:
             data_shape = data_shapes[0]
@@ -305,19 +318,6 @@ def train_net(net, train_path, num_classes, batch_size,
         else:
             val_iter = None
 
-        learning_rate, lr_scheduler = get_lr_scheduler(learning_rate, lr_refactor_step,
-            lr_refactor_ratio, num_example, batch_size, begin_epoch)
-        # optimizer_params={'learning_rate':learning_rate,
-        #                   'wd':weight_decay,
-        #                   'lr_scheduler':lr_scheduler,
-        #                   'clip_gradient':10,
-        #                   'rescale_grad': 1.0 }
-        optimizer_params={'learning_rate':learning_rate,
-                          'momentum':momentum,
-                          'wd':weight_decay,
-                          'lr_scheduler':lr_scheduler,
-                          'clip_gradient':10,
-                          'rescale_grad': 1.0 }
 
         # more informatic parameter setting
         if not mod.binded:
@@ -330,7 +330,7 @@ def train_net(net, train_path, num_classes, batch_size,
                 validation_metric=valid_metric,
                 batch_end_callback=batch_end_callback,
                 epoch_end_callback=epoch_end_callback,
-                optimizer='sgd',
+                optimizer='nadam',
                 optimizer_params=optimizer_params,
                 begin_epoch=begin,
                 num_epoch=end,
