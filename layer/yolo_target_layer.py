@@ -101,7 +101,7 @@ class YoloTarget(mx.operator.CustomOp):
                 iou_h = _compute_iou(_fit_ratio(label[1:], 0.5), self.anchors_t, self.area_anchors_t)
                 pidx_v = np.where(np.logical_and(iou_v > max_iou, iou_v > self.th_iou))[0]
                 pidx_h = np.where(np.logical_and(iou_h > max_iou, iou_h > self.th_iou))[0]
-                pidx = np.union1d(pidx_v, pidx_h)
+                pidx = np.unique(np.hstack((pidx, pidx_v, pidx_h)))
 
             if len(pidx) == 0:
                 if np.max(iou) == 0:
