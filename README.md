@@ -18,14 +18,14 @@ You don't need to complie the custom mxnet to use this branch.
 Changes from the original algorithm:
 - [Focal loss](https://arxiv.org/abs/1708.02002) for classifier training.
 - [IOU loss](https://arxiv.org/abs/1608.01471) for regressor training.
-- MobileNet for backbone network.
+- [Objectness prior](https://arxiv.org/abs/1707.01691) for replacing objectness.
+- [MobileNet](https://arxiv.org/abs/1704.04861) for backbone network.
 
 TODO:
-- Apply plateau learning scheduler.
-- (done) Replace cpp layers to python layers.
-- (done) Add bounding box clutering method.
-- (done) Apply focal loss.
-- (done) Apply IOU loss for regressor training.
+- (done) ~~Replace cpp layers to python layers.~~
+- (done) ~~Add bounding box clutering method.~~
+- (done) ~~Apply focal loss.~~
+- (done) ~~Apply IOU loss for regressor training.~~
 
 ### Demo
 
