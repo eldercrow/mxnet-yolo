@@ -80,7 +80,7 @@ class YoloTarget(mx.operator.CustomOp):
             lsq = _autofit_ratio(label[1:], max_ratio=3.0)
             #
             iou = _compute_iou(lsq, self.anchors_t, self.area_anchors_t)
-            iou *= iou > self.th_iou_neg
+            # iou *= iou > self.th_iou_neg
 
             # skip already occupied ones
             iou_mask = iou > max_iou
