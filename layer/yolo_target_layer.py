@@ -77,9 +77,10 @@ class YoloTarget(mx.operator.CustomOp):
         for i, label in enumerate(labels):
             gt_cls = int(label[0]) + 1
             #
-            lsq = _autofit_ratio(label[1:], max_ratio=2.5)
+            lsq = _autofit_ratio(label[1:], max_ratio=3.0)
             #
             iou = _compute_iou(lsq, self.anchors_t, self.area_anchors_t)
+            iou *= iou > self.th_iou_neg
 
             # skip already occupied ones
             iou_mask = iou > max_iou
@@ -93,11 +94,21 @@ class YoloTarget(mx.operator.CustomOp):
             # positive and regression samples
             pidx = np.where(np.logical_and(iou_mask, iou > self.th_iou))[0]
             ridx = np.where(np.logical_and(iou_mask, iou > self.th_iou_neg))[0]
+
+            if len(pidx) < 3:
+                # TEST
+                iou_v = _compute_iou(_fit_ratio(label[1:], 2.0), self.anchors_t, self.area_anchors_t)
+                iou_h = _compute_iou(_fit_ratio(label[1:], 0.5), self.anchors_t, self.area_anchors_t)
+                pidx_v = np.where(np.logical_and(iou_v > max_iou, iou_v > self.th_iou))[0]
+                pidx_h = np.where(np.logical_and(iou_h > max_iou, iou_h > self.th_iou))[0]
+                pidx = np.union1d(pidx_v, pidx_h)
+
             if len(pidx) == 0:
                 if np.max(iou) == 0:
                     continue
                 # at least one positive sample
                 pidx = [np.argmax(iou)]
+
             if len(pidx) > 3:
                 pidx = np.random.choice(pidx, 3, replace=False)
 
@@ -144,6 +155,23 @@ def _compute_loc_target(gt_bb, bb):
     loc_mask = np.ones_like(loc_target)
     return loc_target, loc_mask
 
+
+def _fit_ratio(bb, ratio):
+    #
+    ww = bb[2] - bb[0]
+    hh = bb[3] - bb[1]
+    cx = (bb[0] + bb[2]) / 2.0
+    cy = (bb[1] + bb[3]) / 2.0
+
+    ww *= np.sqrt(ratio)
+    hh /= np.sqrt(ratio)
+
+    res = bb.copy()
+    res[0] = cx - ww * 0.5
+    res[1] = cy - hh * 0.5
+    res[2] = cx + ww * 0.5
+    res[3] = cy + hh * 0.5
+    return res
 
 def _autofit_ratio(bb, max_ratio=3.0):
     #

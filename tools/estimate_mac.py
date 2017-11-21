@@ -161,6 +161,7 @@ if __name__ == '__main__':
     from anchor_box_layer import *
     from focal_loss_layer import *
     from rpn_focal_loss_layer import *
+    from merge_rpn_cls_layer import *
     from yolo_target_layer import *
     from smoothed_focal_loss_layer import *
     from roi_transform_layer import *

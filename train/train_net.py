@@ -76,7 +76,8 @@ def get_lr_scheduler(learning_rate, lr_refactor_step, lr_refactor_ratio,
         steps = [epoch_size * (x - begin_epoch) for x in iter_refactor if x > begin_epoch]
         if not steps:
             return (lr, None)
-        lr_scheduler = BurnInMultiFactorScheduler(burn_in=1000, step=steps, factor=lr_refactor_ratio)
+        lr_scheduler = mx.lr_scheduler.MultiFactorScheduler(step=steps, factor=lr_refactor_ratio)
+        # lr_scheduler = BurnInMultiFactorScheduler(burn_in=1000, step=steps, factor=lr_refactor_ratio)
         return (lr, lr_scheduler)
 
 def set_mod_params(mod, args, auxs, logger):
