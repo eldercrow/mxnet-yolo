@@ -19,7 +19,7 @@ Changes from the original algorithm:
 - [Focal loss](https://arxiv.org/abs/1708.02002) for classifier training.
 - [IOU loss](https://arxiv.org/abs/1608.01471) for regressor training.
 - [Objectness prior](https://arxiv.org/abs/1707.01691) to replace IOU prediction.
-- [MobileNet](https://arxiv.org/abs/1704.04861) as thebackbone network.
+- [MobileNet](https://arxiv.org/abs/1704.04861) as the backbone network.
 
 TODO:
 - (done) ~~Replace cpp layers to python layers.~~
