@@ -210,11 +210,13 @@ def get_symbol(network, num_classes,
 
     rpn_preds, rpn_probs, cls_preds, cls_probs, loc_preds, anchor_boxes = \
             get_preds(body_rpn, body, num_classes, use_global_stats)
-    # cls_preds, cls_probs, loc_preds, anchor_boxes = \
-    #         get_preds(body, num_classes, use_global_stats)
 
     loc_preds_det = mx.sym.reshape(loc_preds, (0, -1))
-    out = mx.contrib.symbol.MultiBoxDetection(*[cls_probs, loc_preds_det, anchor_boxes], \
+
+    cls_merged = mx.sym.Custom(cls_probs, rpn_probs,
+            name='merge_rpn_cls', op_type='merge_rpn_cls')
+
+    out = mx.contrib.symbol.MultiBoxDetection(*[cls_merged, loc_preds_det, anchor_boxes], \
             name="detection", nms_threshold=nms_thresh, force_suppress=force_suppress,
             variances=(0.1, 0.1, 0.2, 0.2), nms_topk=nms_topk, clip=False)
     return out
