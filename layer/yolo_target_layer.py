@@ -95,10 +95,12 @@ class YoloTarget(mx.operator.CustomOp):
             pidx = np.where(np.logical_and(iou_mask, iou > self.th_iou))[0]
             ridx = np.where(np.logical_and(iou_mask, iou > self.th_iou_neg))[0]
 
-            if len(pidx) < 3:
+            if len(pidx) > 5:
+                pidx = np.random.choice(pidx, 5, replace=False)
+            elif len(pidx) < 3:
                 # TEST
-                iou_v = _compute_iou(_fit_ratio(label[1:], 2.0), self.anchors_t, self.area_anchors_t)
-                iou_h = _compute_iou(_fit_ratio(label[1:], 0.5), self.anchors_t, self.area_anchors_t)
+                iou_v = _compute_iou(_adjust_ratio(lsq, 2.0), self.anchors_t, self.area_anchors_t)
+                iou_h = _compute_iou(_adjust_ratio(lsq, 0.5), self.anchors_t, self.area_anchors_t)
                 pidx_v = np.where(np.logical_and(iou_v > max_iou, iou_v > self.th_iou))[0]
                 pidx_h = np.where(np.logical_and(iou_h > max_iou, iou_h > self.th_iou))[0]
                 pidx = np.unique(np.hstack((pidx, pidx_v, pidx_h)))
@@ -108,9 +110,6 @@ class YoloTarget(mx.operator.CustomOp):
                     continue
                 # at least one positive sample
                 pidx = [np.argmax(iou)]
-
-            if len(pidx) > 3:
-                pidx = np.random.choice(pidx, 3, replace=False)
 
             # map ridx first, and then pidx
             target_cls[ridx] = -1
@@ -156,7 +155,7 @@ def _compute_loc_target(gt_bb, bb):
     return loc_target, loc_mask
 
 
-def _fit_ratio(bb, ratio):
+def _adjust_ratio(bb, ratio):
     #
     ww = bb[2] - bb[0]
     hh = bb[3] - bb[1]
