@@ -18,31 +18,31 @@ TODO:
 - (done) ~~Apply IOU loss for regressor training.~~
 
 Current result:
-<pre><code>
-  aeroplane: 0.725035733736
-  bicycle: 0.777305251056
-  bird: 0.691306527322
-  boat: 0.602621787907
-  bottle: 0.449612583334
-  bus: 0.78538465584
-  car: 0.782964413393
-  cat: 0.850369751759
-  chair: 0.552281010296
-  cow: 0.718325264779
-  diningtable: 0.7121962672
-  dog: 0.789196438369
-  horse: 0.798426342904
-  motorbike: 0.769899089785
-  person: 0.736098801882
-  pottedplant: 0.492114798722
-  sheep: 0.706932884291
-  sofa: 0.729588482203
-  train: 0.809021314211
-  tvmonitor: 0.734151462662
-  mAP: 0.710641643083
+```
+aeroplane: 0.725035733736
+bicycle: 0.777305251056
+bird: 0.691306527322
+boat: 0.602621787907
+bottle: 0.449612583334
+bus: 0.78538465584
+car: 0.782964413393
+cat: 0.850369751759
+chair: 0.552281010296
+cow: 0.718325264779
+diningtable: 0.7121962672
+dog: 0.789196438369
+horse: 0.798426342904
+motorbike: 0.769899089785
+person: 0.736098801882
+pottedplant: 0.492114798722
+sheep: 0.706932884291
+sofa: 0.729588482203
+train: 0.809021314211
+tvmonitor: 0.734151462662
+mAP: 0.710641643083
 
-  Total 6,079,762,494 (5.662) FLOP (GFLOP) for conv and bn layers.
-</code></pre>
+Total 6,079,762,494 (5.662) FLOP (GFLOP) for conv and bn layers.
+```
 
 # YOLO-v2: Real-Time Object Detection
 
