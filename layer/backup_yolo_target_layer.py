@@ -12,12 +12,12 @@ class YoloTarget(mx.operator.CustomOp):
     '''
     Python (inexact) implementation of yolo output layer.
     '''
-    def __init__(self, th_iou, th_iou_neg, th_iou_pass):
+    def __init__(self, th_iou, th_iou_neg, th_small):
         #
         super(YoloTarget, self).__init__()
         self.th_iou = th_iou
         self.th_iou_neg = th_iou_neg
-        self.th_iou_pass = th_iou_pass
+        self.th_small = th_small
 
         # precompute nms candidates
         self.anchors = None
@@ -80,7 +80,6 @@ class YoloTarget(mx.operator.CustomOp):
             lsq = _autofit_ratio(label[1:], max_ratio=3.0)
             #
             iou = _compute_iou(lsq, self.anchors_t, self.area_anchors_t)
-
             # iou *= iou > self.th_iou_neg
 
             # skip already occupied ones
@@ -89,6 +88,8 @@ class YoloTarget(mx.operator.CustomOp):
             if label[0] == -1:
                 continue
             gt_sz = np.maximum(label[3]-label[1], label[4]-label[2])
+            if gt_sz < self.th_small and np.max(iou) < self.th_iou_neg:
+                continue
 
             # positive and regression samples
             pidx = np.where(np.logical_and(iou_mask, iou > self.th_iou))[0]
@@ -100,24 +101,17 @@ class YoloTarget(mx.operator.CustomOp):
                 # TEST
                 iou_v = _compute_iou(_adjust_ratio(lsq, 2.0), self.anchors_t, self.area_anchors_t)
                 iou_h = _compute_iou(_adjust_ratio(lsq, 0.5), self.anchors_t, self.area_anchors_t)
+                pidx_v = np.where(np.logical_and(iou_v > max_iou, iou_v > self.th_iou))[0]
+                pidx_h = np.where(np.logical_and(iou_h > max_iou, iou_h > self.th_iou))[0]
+                pidx = np.unique(np.hstack((pidx, pidx_v, pidx_h)))
 
-                iou_t = np.maximum(np.maximum(iou, iou_v), iou_h)
-                if np.max(iou_t) < self.th_iou_pass:
+            if len(pidx) == 0:
+                if np.max(iou) == 0:
                     continue
-
-                sidx = np.argpartition(iou_t, iou_t.size - 3)
-                pidx = sidx[-3:]
-
-            assert len(pidx) > 0
-            #
-            # if len(pidx) == 0:
-            #     if np.max(iou) == 0:
-            #         continue
-            #     # at least one positive sample
-            #     pidx = [np.argmax(iou)]
+                # at least one positive sample
+                pidx = [np.argmax(iou)]
 
             # map ridx first, and then pidx
-            ridx = ridx[target_cls[ridx] == 0]
             target_cls[ridx] = -1
             target_cls[pidx] = gt_cls
             rt, rm = _compute_loc_target(label[1:], self.anchors[pidx, :])
@@ -201,12 +195,12 @@ def _autofit_ratio(bb, max_ratio=3.0):
 
 @mx.operator.register("yolo_target")
 class YoloTargetProp(mx.operator.CustomOpProp):
-    def __init__(self, th_iou=0.5, th_iou_neg=0.4, th_iou_pass=0.1):
+    def __init__(self, th_iou=0.5, th_iou_neg=0.4, th_small=0.01):
         #
         super(YoloTargetProp, self).__init__(need_top_grad=False)
         self.th_iou = float(th_iou)
         self.th_iou_neg = float(th_iou_neg)
-        self.th_iou_pass = float(th_iou_pass)
+        self.th_small = float(th_small)
 
     def list_arguments(self):
         return ['anchors', 'label', 'probs_cls']
@@ -225,4 +219,4 @@ class YoloTargetProp(mx.operator.CustomOpProp):
         return in_shape, out_shape, []
 
     def create_operator(self, ctx, shapes, dtypes):
-        return YoloTarget(self.th_iou, self.th_iou_neg, self.th_iou_pass)
+        return YoloTarget(self.th_iou, self.th_iou_neg, self.th_small)

@@ -45,6 +45,7 @@ cfg.anchor_shapes = [ \
         6.281, 9.494,
         10.91, 10.454,
         ]
+cfg.anchor_shapes = [s * 2 for s in cfg.anchor_shapes]
 # cfg.anchor_shapes = [ \
 #         0.41, 0.677,
 #         0.591, 1.665,

@@ -1,3 +1,4 @@
+from __future__ import print_function
 import argparse
 import mxnet as mx
 import numpy as np
@@ -81,10 +82,10 @@ def estimate_mac(net, data_shape, label_shape=None):
     for li, lv in sorted(layer_info.items()):
         flop = lv[1]
         gflop = np.round(flop / float(2**30), 3)
-        print '{}: {:,} ({:,})'.format(li, flop, gflop)
-    print '-------------------------------------------------------'
-    print 'Total {:,} ({:,}) FLOP (GFLOP) for conv, bn, fc layers.'.format(total_mac, total_gmac)
-    print '-------------------------------------------------------'
+        print('{}: {:,} ({:,})'.format(li, flop, gflop))
+    print('-------------------------------------------------------')
+    print('Total {:,} ({:,}) FLOPs (GFLOPs) for conv, bn, fc layers.'.format(total_mac, total_gmac))
+    print('-------------------------------------------------------')
 
     return total_mac, total_gmac
 
