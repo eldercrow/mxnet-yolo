@@ -2,7 +2,6 @@
 I am not interested in exact re-implementation of the original YOLO.
 Check zhreshold's original repo (from which I forked) if that's what you're looking for.
 
-This code is now sorta working (training only), but the mAP is not satisfactory yet.
 You don't need to complie the custom mxnet to use this branch.
 
 Changes from the original algorithm:
@@ -41,7 +40,7 @@ train: 0.809021314211
 tvmonitor: 0.734151462662
 mAP: 0.710641643083
 
-Total 6,079,762,494 (5.662) FLOP (GFLOP) for conv and bn layers.
+Total 6,079,762,494 (5.662) FLOPs (GFLOPs) for conv and bn layers.
 ```
 
 # YOLO-v2: Real-Time Object Detection
