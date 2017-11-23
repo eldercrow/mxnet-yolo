@@ -33,6 +33,18 @@ ColorJitter = namedtuple_with_defaults('ColorJitter',
 cfg = DotDict()
 cfg.ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
+# cfg.anchor_shapes = [ \
+#         0.836, 1.33,
+#         2.597, 2.067,
+#         2.406, 6.334,
+#         4.836, 4.195,
+#         1.227, 3.643,
+#         7.25, 8.075,
+#         4.017, 11.972,
+#         16.176, 9.879,
+#         8.963, 17.258,
+#         20.137, 20.797,
+#         ]
 cfg.anchor_shapes = [ \
         0.534, 0.974,
         1.655, 1.374,
