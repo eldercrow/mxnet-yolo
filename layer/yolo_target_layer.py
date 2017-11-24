@@ -81,8 +81,6 @@ class YoloTarget(mx.operator.CustomOp):
             #
             iou = _compute_iou(lsq, self.anchors_t, self.area_anchors_t)
 
-            # iou *= iou > self.th_iou_neg
-
             # skip already occupied ones
             iou_mask = iou > max_iou
             max_iou = np.maximum(iou, max_iou)
@@ -108,22 +106,17 @@ class YoloTarget(mx.operator.CustomOp):
                 sidx = np.argpartition(iou_t, iou_t.size - 5)
                 pidx = sidx[-5:]
                 pidx = pidx[np.where(iou_t[pidx] > self.th_iou_pass)[0]]
-
-            assert len(pidx) > 0
-            #
-            # if len(pidx) == 0:
-            #     if np.max(iou) == 0:
-            #         continue
-            #     # at least one positive sample
-            #     pidx = [np.argmax(iou)]
+                # ridx = sidx[-5:]
+                # pidx = pidx[np.where(iou_t[ridx] > self.th_iou_pass)[0]]
 
             # map ridx first, and then pidx
             ridx = ridx[target_cls[ridx] == 0]
             target_cls[ridx] = -1
-            target_cls[pidx] = gt_cls
-            rt, rm = _compute_loc_target(label[1:], self.anchors[pidx, :])
-            target_reg[pidx, :] = rt
-            mask_reg[pidx, :] = rm
+            if len(pidx) > 0:
+                target_cls[pidx] = gt_cls
+                rt, rm = _compute_loc_target(label[1:], self.anchors[pidx, :])
+                target_reg[pidx, :] = rt
+                mask_reg[pidx, :] = rm
 
         return target_cls, target_reg, mask_reg
 

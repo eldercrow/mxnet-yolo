@@ -6,6 +6,7 @@ from layer.dummy_layer import *
 from layer.focal_loss_layer import *
 from layer.rpn_focal_loss_layer import *
 from layer.smoothed_focal_loss_layer import *
+from layer.rpn_smoothed_focal_loss_layer import *
 from layer.multibox_detection_layer import *
 from layer.roi_transform_layer import *
 from layer.iou_loss_layer import *
@@ -118,9 +119,6 @@ def get_symbol_train(network, num_classes,
     mx.Symbol
 
     """
-    # use_focal_loss = cfg.train['use_focal_loss']
-    # use_smooth_ce = cfg.train['use_smooth_ce']
-
     label = mx.sym.Variable('yolo_output_label')
 
     use_global_stats = False
@@ -136,7 +134,6 @@ def get_symbol_train(network, num_classes,
             get_preds(body_rpn, body, num_classes, use_global_stats)
 
     # get target GT label
-    # th_small = 0.01 if not 'th_small' in kwargs else kwargs['th_small']
     tmp = mx.sym.Custom(*[anchor_boxes, label, cls_probs], name='yolo_target',
             op_type='yolo_target')
     loc_target = tmp[0]
@@ -156,14 +153,23 @@ def get_symbol_train(network, num_classes,
                 gamma=gamma, alpha=alpha_rpn, normalize=True)
     else:
         th_prob = cfg.train['smooth_ce_th']
-        w_reg = cfg.train['smooth_ce_lambda'] * float(num_classes)
+        w_reg_cls = cfg.train['smooth_ce_lambda'] * float(num_classes+1)
+        w_reg_rpn = cfg.train['smooth_ce_lambda'] * 2
 
-        var_th_prob = mx.sym.var(name='th_prob_sce', shape=(1,), dtype=np.float32, \
+        th_sce_cls = mx.sym.var(name='th_sce_cls', shape=(1,), dtype=np.float32, \
                 init=mx.init.Constant(np.log(th_prob)))
-        var_th_prob = mx.sym.exp(var_th_prob)
-        cls_preds, cls_loss = mx.sym.Custom(cls_preds, cls_probs, cls_target, var_th_prob,
-                op_type='smoothed_focal_loss', name='cls_loss',
-                gamma=gamma, alpha=alpha, th_prob=th_prob, w_reg=w_reg, normalize=True)
+        th_sce_cls = mx.sym.exp(th_sce_cls)
+        cls_preds, cls_loss = mx.sym.Custom( \
+                cls_preds, cls_probs, cls_target, rpn_preds, rpn_probs, th_sce_cls, \
+                op_type='rpn_smoothed_focal_loss', name='cls_loss', \
+                gamma=gamma, alpha=alpha, th_prob=th_prob, w_reg=w_reg_cls, normalize=True)
+
+        th_sce_rpn = mx.sym.var(name='th_sce_rpn', shape=(1,), dtype=np.float32, \
+                init=mx.init.Constant(np.log(th_prob)))
+        th_sce_rpn = mx.sym.exp(th_sce_rpn)
+        rpn_preds, rpn_loss = mx.sym.Custom(rpn_preds, rpn_probs, rpn_target, th_sce_rpn,
+                op_type='smoothed_focal_loss', name='rpn_loss',
+                gamma=gamma, alpha=alpha_rpn, th_prob=th_prob, w_reg=w_reg_rpn, normalize=True)
 
     # IOU loss
     loc_preds_det, _ = mx.symbol.Custom(loc_preds, anchor_boxes,
@@ -195,7 +201,7 @@ def get_symbol_train(network, num_classes,
     # group output
     out = [cls_loss, loc_loss, cls_label, loc_label, det, rpn_loss]
     if cfg.train['use_smooth_ce']:
-        out.append(mx.sym.BlockGrad(var_th_prob))
+        out.append(mx.sym.BlockGrad(th_sce_cls))
     return mx.sym.Group(out)
 
 

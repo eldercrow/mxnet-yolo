@@ -108,7 +108,7 @@ cfg.train.focal_loss_alpha = 0.25
 cfg.train.focal_loss_alpha_rpn = 0.5
 cfg.train.focal_loss_gamma = 2.0
 cfg.train.smoothl1_weight = 1.0
-cfg.train.use_smooth_ce = False
+cfg.train.use_smooth_ce = True
 cfg.train.smooth_ce_th = 1e-02
 cfg.train.smooth_ce_lambda = 1.0
 

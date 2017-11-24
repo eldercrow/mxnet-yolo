@@ -4,11 +4,11 @@ import logging
 from ast import literal_eval
 
 
-class SmoothedFocalLoss(mx.operator.CustomOp):
+class RPNSmoothedFocalLoss(mx.operator.CustomOp):
     '''
     '''
     def __init__(self, alpha, gamma, th_prob, w_reg, normalize):
-        super(SmoothedFocalLoss, self).__init__()
+        super(RPNSmoothedFocalLoss, self).__init__()
         self.alpha = alpha
         self.gamma = gamma
         self.th_prob = th_prob
@@ -22,10 +22,18 @@ class SmoothedFocalLoss(mx.operator.CustomOp):
         Just pass the data.
         '''
         self.assign(out_data[0], req[0], in_data[1])
-        th_prob = in_data[3].asscalar()
+        th_prob = in_data[5].asscalar()
 
         # for debug
         p = mx.nd.pick(in_data[1], in_data[2], axis=1, keepdims=True)
+        rp = mx.nd.pick(in_data[4], in_data[2] > 0, axis=1, keepdims=True)
+
+        p_fg = p * rp
+        p_bg = p + rp - p*rp
+        fg_mask = in_data[2] > 0
+
+        p = p_fg * fg_mask + p_bg * (1 - fg_mask)
+
         ce = -mx.nd.log(mx.nd.maximum(p, self.eps))
         sce = -p / th_prob - np.log(th_prob) + 1
 
@@ -42,9 +50,16 @@ class SmoothedFocalLoss(mx.operator.CustomOp):
         Reweight loss according to focal loss.
         '''
         cls_target = in_data[2]
-        th_prob = in_data[3].asscalar()
+        th_prob = in_data[5].asscalar()
+        fg_mask = cls_target > 0
 
-        p = mx.nd.pick(in_data[1], cls_target, axis=1, keepdims=True)
+        p0 = mx.nd.pick(in_data[1], cls_target, axis=1, keepdims=True)
+        rp = mx.nd.pick(in_data[4], fg_mask, axis=1, keepdims=True)
+
+        p_fg = p0 * rp
+        p_bg = p0 + rp - p0*rp
+
+        p = p_fg * fg_mask + p_bg * (1 - fg_mask)
 
         ce = -mx.nd.log(mx.nd.maximum(p, self.eps))
         sce = -p / th_prob - np.log(th_prob) + 1
@@ -55,7 +70,7 @@ class SmoothedFocalLoss(mx.operator.CustomOp):
         thp = mx.nd.maximum(p, th_prob)
         u = 1 - p if self.gamma == 2.0 else mx.nd.power(1 - p, self.gamma - 1.0)
         v = p * self.gamma * sce + (p / thp) * (1 - p)
-        a = (cls_target > 0) * self.alpha + (cls_target == 0) * (1 - self.alpha)
+        a = fg_mask * self.alpha + (cls_target == 0) * (1 - self.alpha)
         gf = v * u * a
 
         n_class = in_data[0].shape[1]
@@ -66,13 +81,32 @@ class SmoothedFocalLoss(mx.operator.CustomOp):
         g = (in_data[1] - label_mask) * gf
         g *= (cls_target >= 0)
 
+        obj_mask = mx.nd.one_hot(mx.nd.reshape(fg_mask, (0, -1)), 2,
+                on_value=1, off_value=0)
+        obj_mask = mx.nd.transpose(obj_mask, (0, 2, 1))
+
+        gr = (in_data[4] - obj_mask) * gf
+        gr *= (cls_target >= 0)
+
+        # care fg and bg
+        rp_fg = rp * fg_mask
+        rp_bg = rp * (1 - fg_mask)
+        rp = rp_fg + (1 - rp_bg)
+        g *= rp
+
+        p0_fg = p0 * fg_mask
+        p0_bg = p0 * (1 - fg_mask)
+        p0 = p0_fg + (1 - p0_bg)
+        gr *= p0
+
         g_th = mx.nd.minimum(p, th_prob) / th_prob / th_prob - 1.0 / th_prob
         g_th *= mx.nd.power(1 - p, self.gamma)
         g_th = mx.nd.sum(g_th) + cls_target.size * th_prob * 2.0 * self.w_reg
 
         if self.normalize:
-            norm = mx.nd.sum(cls_target > 0).asscalar()
+            norm = mx.nd.sum(fg_mask).asscalar()
             g /= norm
+            gr /= norm
             g_th /= norm
         if mx.nd.uniform(0, 1, (1,)).asscalar() < 0.001:
             logging.getLogger().info('{}: current th_prob for smoothed CE = {}'.format( \
@@ -81,16 +115,18 @@ class SmoothedFocalLoss(mx.operator.CustomOp):
         self.assign(in_grad[0], req[0], g)
         self.assign(in_grad[1], req[1], 0)
         self.assign(in_grad[2], req[2], 0)
-        self.assign(in_grad[3], req[3], g_th)
+        self.assign(in_grad[3], req[3], gr)
+        self.assign(in_grad[4], req[4], 0)
+        self.assign(in_grad[5], req[5], g_th)
 
 
-@mx.operator.register("smoothed_focal_loss")
-class SmoothedFocalLossProp(mx.operator.CustomOpProp):
+@mx.operator.register("rpn_smoothed_focal_loss")
+class RPNSmoothedFocalLossProp(mx.operator.CustomOpProp):
     '''
     '''
-    def __init__(self, alpha=0.25, gamma=2.0, th_prob=0.1, w_reg=1.0, normalize=False):
+    def __init__(self, alpha=0.25, gamma=2.0, th_prob=0.01, w_reg=1.0, normalize=False):
         #
-        super(SmoothedFocalLossProp, self).__init__(need_top_grad=False)
+        super(RPNSmoothedFocalLossProp, self).__init__(need_top_grad=False)
         self.alpha = float(alpha)
         self.gamma = float(gamma)
         self.th_prob = float(th_prob)
@@ -98,7 +134,7 @@ class SmoothedFocalLossProp(mx.operator.CustomOpProp):
         self.normalize = bool(literal_eval(str(normalize)))
 
     def list_arguments(self):
-        return ['cls_pred', 'cls_prob', 'cls_target', 'th_prob']
+        return ['cls_pred', 'cls_prob', 'cls_target', 'rpn_pred', 'rpn_prob', 'th_prob']
 
     def list_outputs(self):
         return ['cls_prob', 'cls_loss']
@@ -115,4 +151,4 @@ class SmoothedFocalLossProp(mx.operator.CustomOpProp):
     #     return [dtype, dtype, dtype, dtype], [dtype], []
 
     def create_operator(self, ctx, shapes, dtypes):
-        return SmoothedFocalLoss(self.alpha, self.gamma, self.th_prob, self.w_reg, self.normalize)
+        return RPNSmoothedFocalLoss(self.alpha, self.gamma, self.th_prob, self.w_reg, self.normalize)

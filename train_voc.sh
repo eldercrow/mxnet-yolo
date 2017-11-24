@@ -10,7 +10,8 @@ python train.py \
     --min-random-shape 320 \
     --max-random-shape 512 \
     --random-shape-step 32 \
-    --resume 80 \
+    --pretrained /home/hyunjoon/github/model_mxnet/mobilenet/mobilenet \
+    --epoch 0 \
     --freeze '^(conv1|conv2).*' \
     --lr 5e-04 \
     --lr-steps 80,110,130 \
@@ -19,8 +20,6 @@ python train.py \
     --frequent 100 \
     --nms 0.35 \
     --gpus 0,1
-    # --pretrained /home/hyunjoon/github/model_mxnet/mobilenet/mobilenet \
-    # --epoch 0 \
     # --wd 1e-04 \
     # --lr-steps 3,3,4 \
     # --lr-factor 0.1 \
