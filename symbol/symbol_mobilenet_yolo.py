@@ -30,20 +30,11 @@ def get_symbol(num_classes, use_global_stats):
             use_global_stats=use_global_stats)
 
     conv8_1 = depthwise_unit(conv7_1, '8_1',
-            nf_dw=1024, nf_sep=1024, kernel=(3, 3), pad=(1, 1),
+            nf_dw=1024, nf_sep=1024, kernel=(5, 5), pad=(2, 2),
             use_global_stats=use_global_stats)
-    conv8_2 = depthwise_unit(conv8_1, '8_2',
-            nf_dw=1024, nf_sep=1024, kernel=(3, 3), pad=(1, 1),
-            use_global_stats=use_global_stats)
-    # conv7_3 = depthwise_unit(conv7_2, '7_3',
+    conv8_2 = conv7_1 + conv8_1
+    # conv8_2 = depthwise_unit(conv8_1, '8_2',
     #         nf_dw=1024, nf_sep=1024, kernel=(3, 3), pad=(1, 1),
-    #         use_global_stats=use_global_stats)
-    #
-    # # re-organze conv5_5 and concat conv7_2
-    # concat = mx.sym.concat(conv5_6, conv7_2)
-    # # concat = conv7_2
-    # conv8_1 = depthwise_unit(concat, '8_1',
-    #         nf_dw=1024+2048, nf_sep=1024, kernel=(3, 3), pad=(1, 1),
     #         use_global_stats=use_global_stats)
 
     return rpn_1, conv8_2

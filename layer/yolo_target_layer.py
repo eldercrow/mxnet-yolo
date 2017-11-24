@@ -105,8 +105,9 @@ class YoloTarget(mx.operator.CustomOp):
                 if np.max(iou_t) < self.th_iou_pass:
                     continue
 
-                sidx = np.argpartition(iou_t, iou_t.size - 3)
-                pidx = sidx[-3:]
+                sidx = np.argpartition(iou_t, iou_t.size - 5)
+                pidx = sidx[-5:]
+                pidx = pidx[np.where(iou_t[pidx] > self.th_iou_pass)[0]]
 
             assert len(pidx) > 0
             #
@@ -178,6 +179,7 @@ def _adjust_ratio(bb, ratio):
     res[3] = cy + hh * 0.5
     return res
 
+
 def _autofit_ratio(bb, max_ratio=3.0):
     #
     ww = bb[2] - bb[0]
@@ -201,7 +203,7 @@ def _autofit_ratio(bb, max_ratio=3.0):
 
 @mx.operator.register("yolo_target")
 class YoloTargetProp(mx.operator.CustomOpProp):
-    def __init__(self, th_iou=0.5, th_iou_neg=0.4, th_iou_pass=0.1):
+    def __init__(self, th_iou=0.5, th_iou_neg=0.4, th_iou_pass=0.25):
         #
         super(YoloTargetProp, self).__init__(need_top_grad=False)
         self.th_iou = float(th_iou)
