@@ -64,8 +64,8 @@ class MultiBoxMetric(mx.metric.EvalMetric):
         # -log IOU
         loc_loss = preds[1].asnumpy()
         if np.sum(loc_loss) < 0:
-            import ipdb
-            ipdb.set_trace()
+            import pdb
+            pdb.set_trace()
         loc_label = preds[3].asnumpy()
         self.sum_metric[1] += np.sum(loc_loss)
         self.num_inst[1] += np.sum(loc_label) / 4
