@@ -75,7 +75,8 @@ class SmoothedFocalLoss(mx.operator.CustomOp):
             g /= norm
             g_th /= norm
         if mx.nd.uniform(0, 1, (1,)).asscalar() < 0.001:
-            logging.getLogger().info('Current th_prob for smoothed CE: {}'.format(th_prob))
+            logging.getLogger().info('{}: current th_prob for smoothed CE = {}'.format( \
+                    type(self).__name__, th_prob))
 
         self.assign(in_grad[0], req[0], g)
         self.assign(in_grad[1], req[1], 0)
@@ -104,7 +105,7 @@ class SmoothedFocalLossProp(mx.operator.CustomOpProp):
 
     def infer_shape(self, in_shape):
         # in_shape[3] = (1,)
-        out_shape = [in_shape[0], ]
+        out_shape = [in_shape[0], in_shape[2]]
         return in_shape, out_shape, []
 
     # def infer_type(self, in_type):

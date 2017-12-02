@@ -6,9 +6,11 @@ from layer.dummy_layer import *
 from layer.focal_loss_layer import *
 from layer.rpn_focal_loss_layer import *
 from layer.smoothed_focal_loss_layer import *
+from layer.rpn_smoothed_focal_loss_layer import *
 from layer.multibox_detection_layer import *
 from layer.roi_transform_layer import *
 from layer.iou_loss_layer import *
+from layer.merge_rpn_cls_layer import *
 from config.config import cfg
 
 from symbol.symbol_mobilenet import depthwise_unit
@@ -47,9 +49,9 @@ def get_preds(body_rpn, body, num_classes, use_global_stats):
     num_classes += 1
 
     # rpn (objectness) prediction
-    rpn_preds = depthwise_unit(body_rpn, '_rpn_pred',
+    rpn_preds = depthwise_unit(body_rpn, 'rpn_pred_',
             nf_dw=256, nf_sep=0, kernel=(3, 3), pad=(1, 1),
-            use_global_stats=use_global_stats)
+            no_act=True, use_global_stats=use_global_stats)
 
     rpn_pred_conv_bias = mx.sym.var(name='rpn_pred_conv_bias',
             init=FocalBiasInit(2, 0.01))
@@ -57,9 +59,9 @@ def get_preds(body_rpn, body, num_classes, use_global_stats):
             num_filter=num_anchor*2, kernel=(1, 1), pad=(0, 0))
 
     # class prediction
-    cls_preds = depthwise_unit(body, '_cls_pred',
+    cls_preds = depthwise_unit(body, 'cls_pred_',
             nf_dw=1024, nf_sep=0, kernel=(5, 5), pad=(2, 2),
-            use_global_stats=use_global_stats)
+            no_act=True, use_global_stats=use_global_stats)
 
     cls_pred_conv_bias = mx.sym.var(name='cls_pred_conv_bias',
             init=FocalBiasInit(num_classes, 0.01))
@@ -67,9 +69,9 @@ def get_preds(body_rpn, body, num_classes, use_global_stats):
             num_filter=num_anchor*num_classes, kernel=(1, 1), pad=(0, 0))
 
     # bb and iou prediction
-    loc_preds = depthwise_unit(body, '_loc_pred',
+    loc_preds = depthwise_unit(body, 'loc_pred_',
             nf_dw=1024, nf_sep=0, kernel=(3, 3), pad=(1, 1),
-            use_global_stats=use_global_stats)
+            no_act=True, use_global_stats=use_global_stats)
     loc_preds = mx.sym.Convolution(loc_preds, name='loc_pred_conv',
             num_filter=num_anchor*4, kernel=(1, 1), pad=(0, 0))
 
@@ -117,9 +119,6 @@ def get_symbol_train(network, num_classes,
     mx.Symbol
 
     """
-    # use_focal_loss = cfg.train['use_focal_loss']
-    # use_smooth_ce = cfg.train['use_smooth_ce']
-
     label = mx.sym.Variable('yolo_output_label')
 
     use_global_stats = False
@@ -135,9 +134,8 @@ def get_symbol_train(network, num_classes,
             get_preds(body_rpn, body, num_classes, use_global_stats)
 
     # get target GT label
-    th_small = 0.01 if not 'th_small' in kwargs else kwargs['th_small']
     tmp = mx.sym.Custom(*[anchor_boxes, label, cls_probs], name='yolo_target',
-            op_type='yolo_target', th_small=th_small)
+            op_type='yolo_target')
     loc_target = tmp[0]
     loc_target_mask = tmp[1]
     cls_target = tmp[2]
@@ -155,14 +153,23 @@ def get_symbol_train(network, num_classes,
                 gamma=gamma, alpha=alpha_rpn, normalize=True)
     else:
         th_prob = cfg.train['smooth_ce_th']
-        w_reg = cfg.train['smooth_ce_lambda'] * float(num_classes)
+        w_reg_cls = cfg.train['smooth_ce_lambda'] * float(num_classes+1)
+        w_reg_rpn = cfg.train['smooth_ce_lambda'] * 2
 
-        var_th_prob = mx.sym.var(name='th_prob_sce', shape=(1,), dtype=np.float32, \
+        th_sce_cls = mx.sym.var(name='th_sce_cls', shape=(1,), dtype=np.float32, \
                 init=mx.init.Constant(np.log(th_prob)))
-        var_th_prob = mx.sym.exp(var_th_prob)
-        cls_preds, cls_loss = mx.sym.Custom(cls_preds, cls_probs, cls_target, var_th_prob,
-                op_type='smoothed_focal_loss', name='cls_loss',
-                gamma=gamma, alpha=alpha, th_prob=th_prob, w_reg=w_reg, normalize=True)
+        th_sce_cls = mx.sym.exp(th_sce_cls)
+        cls_preds, cls_loss = mx.sym.Custom( \
+                cls_preds, cls_probs, cls_target, rpn_preds, rpn_probs, th_sce_cls, \
+                op_type='rpn_smoothed_focal_loss', name='cls_loss', \
+                gamma=gamma, alpha=alpha, th_prob=th_prob, w_reg=w_reg_cls, normalize=True)
+
+        th_sce_rpn = mx.sym.var(name='th_sce_rpn', shape=(1,), dtype=np.float32, \
+                init=mx.init.Constant(np.log(th_prob)))
+        th_sce_rpn = mx.sym.exp(th_sce_rpn)
+        rpn_preds, rpn_loss = mx.sym.Custom(rpn_preds, rpn_probs, rpn_target, th_sce_rpn,
+                op_type='smoothed_focal_loss', name='rpn_loss',
+                gamma=gamma, alpha=alpha_rpn, th_prob=th_prob, w_reg=w_reg_rpn, normalize=True)
 
     # IOU loss
     loc_preds_det, _ = mx.symbol.Custom(loc_preds, anchor_boxes,
@@ -177,21 +184,24 @@ def get_symbol_train(network, num_classes,
     loc_label = mx.sym.BlockGrad(loc_target_mask, name='loc_label')
 
     loc_preds = mx.sym.reshape(loc_preds, (0, -1))
+
+    cls_merged = mx.sym.Custom(cls_preds, rpn_preds,
+            name='merge_rpn_cls', op_type='merge_rpn_cls')
     #
-    det = mx.symbol.Custom(cls_preds, loc_preds_det, anchor_boxes, rpn_preds, \
-            name='detection', op_type='multibox_detection',
-            th_nms=nms_thresh, nms_topk=nms_topk, has_rpn=True)
+    # det = mx.symbol.Custom(cls_preds, loc_preds_det, anchor_boxes, rpn_preds, \
+    #         name='detection', op_type='multibox_detection',
+    #         th_nms=nms_thresh, nms_topk=nms_topk, has_rpn=True)
     #
-    # det = mx.contrib.symbol.MultiBoxDetection(*[cls_preds, loc_preds, anchor_boxes], \
-    #     name="detection", nms_threshold=nms_thresh, force_suppress=force_suppress,
-    #     variances=(0.1, 0.1, 0.2, 0.2), nms_topk=nms_topk)
+    det = mx.contrib.symbol.MultiBoxDetection(*[cls_merged, loc_preds, anchor_boxes], \
+        name="detection", nms_threshold=nms_thresh, force_suppress=force_suppress,
+        variances=(0.1, 0.1, 0.2, 0.2), nms_topk=nms_topk)
     #
     det = mx.symbol.MakeLoss(data=det, grad_scale=0, name="det_out")
 
     # group output
     out = [cls_loss, loc_loss, cls_label, loc_label, det, rpn_loss]
     if cfg.train['use_smooth_ce']:
-        out.append(mx.sym.BlockGrad(var_th_prob))
+        out.append(mx.sym.BlockGrad(th_sce_cls))
     return mx.sym.Group(out)
 
 
@@ -206,11 +216,13 @@ def get_symbol(network, num_classes,
 
     rpn_preds, rpn_probs, cls_preds, cls_probs, loc_preds, anchor_boxes = \
             get_preds(body_rpn, body, num_classes, use_global_stats)
-    # cls_preds, cls_probs, loc_preds, anchor_boxes = \
-    #         get_preds(body, num_classes, use_global_stats)
 
     loc_preds_det = mx.sym.reshape(loc_preds, (0, -1))
-    out = mx.contrib.symbol.MultiBoxDetection(*[cls_probs, loc_preds_det, anchor_boxes], \
+
+    cls_merged = mx.sym.Custom(cls_probs, rpn_probs,
+            name='merge_rpn_cls', op_type='merge_rpn_cls')
+
+    out = mx.contrib.symbol.MultiBoxDetection(*[cls_merged, loc_preds_det, anchor_boxes], \
             name="detection", nms_threshold=nms_thresh, force_suppress=force_suppress,
             variances=(0.1, 0.1, 0.2, 0.2), nms_topk=nms_topk, clip=False)
     return out

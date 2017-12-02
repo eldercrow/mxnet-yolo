@@ -18,7 +18,7 @@ def parse_args():
     parser.add_argument('--list-path', dest='list_path', help='which list file to use',
                         default="", type=str)
     parser.add_argument('--network', dest='network', type=str, default='vgg16_ssd_300',
-                        choices=['vgg16_ssd_300', 'vgg16_ssd_512'], help='which network to use')
+                        help='which network to use')
     parser.add_argument('--batch-size', dest='batch_size', type=int, default=32,
                         help='evaluation batch size')
     parser.add_argument('--num-class', dest='num_class', type=int, default=20,

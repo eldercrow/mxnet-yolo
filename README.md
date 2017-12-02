@@ -1,3 +1,48 @@
+#### (eldercrow)
+I am not interested in exact re-implementation of the original YOLO.
+Check zhreshold's original repo (from which I forked) if that's what you're looking for.
+
+You don't need to complie the custom mxnet to use this branch.
+
+Changes from the original algorithm:
+- [Focal loss](https://arxiv.org/abs/1708.02002) for classifier training.
+- [IOU loss](https://arxiv.org/abs/1608.01471) for regressor training.
+- [Objectness prior](https://arxiv.org/abs/1707.01691) to replace IOU prediction.
+- [MobileNet](https://arxiv.org/abs/1704.04861) as the backbone network.
+
+TODO:
+- (done) ~~Replace cpp layers to python layers.~~
+- (done) ~~Add bounding box clutering method.~~
+- (done) ~~Apply focal loss.~~
+- (done) ~~Apply IOU loss for regressor training.~~
+
+Current result:
+```
+aeroplane: 0.761766723036
+bicycle: 0.789669533938
+bird: 0.716072843225
+boat: 0.663045073044
+bottle: 0.419121903603
+bus: 0.796692931031
+car: 0.808846276238
+cat: 0.857749988997
+chair: 0.534843399076
+cow: 0.755831865022
+diningtable: 0.699678582684
+dog: 0.783769712153
+horse: 0.796351577891
+motorbike: 0.781158698769
+person: 0.746715725648
+pottedplant: 0.479498887719
+sheep: 0.727797397934
+sofa: 0.72552385154
+train: 0.834211627161
+tvmonitor: 0.74410041216
+mAP: 0.721122350543
+
+Total 5,727,420,478 (5.334) FLOPs (GFLOPs) for conv, bn, fc layers.
+```
+
 # YOLO-v2: Real-Time Object Detection
 
 Still under development. 71 mAP on VOC2007 achieved so far.
@@ -7,25 +52,6 @@ This is a pre-released version.
 ### Disclaimer
 This is a re-implementation of original yolo v2 which is based on [darknet](https://github.com/pjreddie/darknet).
 The arXiv paper is available [here](https://arxiv.org/pdf/1612.08242.pdf).
-
-#### (eldercrow)
-I am not interested in exact re-implementation of the original YOLO.
-If anyone is looking for that, check zhreshold's original repo.
-
-This code is now sorta working (training only), but the mAP is low yet.
-You don't need to complie the custom mxnet to use this branch.
-
-Changes from the original algorithm:
-- [Focal loss](https://arxiv.org/abs/1708.02002) for classifier training.
-- [IOU loss](https://arxiv.org/abs/1608.01471) for regressor training.
-- MobileNet for backbone network.
-
-TODO:
-- Apply plateau learning scheduler.
-- (done) Replace cpp layers to python layers.
-- (done) Add bounding box clutering method.
-- (done) Apply focal loss.
-- (done) Apply IOU loss for regressor training.
 
 ### Demo
 

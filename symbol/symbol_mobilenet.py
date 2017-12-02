@@ -19,11 +19,16 @@ def conv_bn_relu(data, name, \
 
 def depthwise_unit(data, name, nf_dw, nf_sep,
         kernel=(3, 3), pad=(1, 1), stride=(1, 1),
-        use_global_stats=False):
+        no_act=False, use_global_stats=False):
     #
-    conv_dw = conv_bn_relu(data, name=name+'_dw', \
-            num_filter=nf_dw, kernel=kernel, pad=pad, stride=stride, num_group=nf_dw, \
-            wd_mult=0.01, use_global_stats=use_global_stats)
+    if not no_act:
+        conv_dw = conv_bn_relu(data, name=name+'_dw', \
+                num_filter=nf_dw, kernel=kernel, pad=pad, stride=stride, num_group=nf_dw, \
+                wd_mult=0.01, use_global_stats=use_global_stats)
+    else:
+        conv_dw = mx.sym.Convolution(data, name=name+'dw_conv', \
+                num_filter=nf_dw, kernel=kernel, pad=pad, stride=stride, num_group=nf_dw,
+                wd_mult=0.01)
     if nf_sep == 0:
         return conv_dw
     conv_sep = conv_bn_relu(conv_dw, name=name+'_sep', \

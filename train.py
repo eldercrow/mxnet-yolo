@@ -49,6 +49,8 @@ def parse_args():
                         default=576, help='maximum random data shape')
     parser.add_argument('--label-width', dest='label_width', type=int, default=350,
                         help='force padding label width to sync across train and validation')
+    parser.add_argument('--optimizer-name', dest='optimizer_name', type=str, default='nadam',
+                        help='optimizer name')
     parser.add_argument('--lr', dest='learning_rate', type=float, default=0.0001,
                         help='learning rate')
     parser.add_argument('--momentum', dest='momentum', type=float, default=0.9,
@@ -63,7 +65,7 @@ def parse_args():
                         help='blue mean value')
     parser.add_argument('--lr-steps', dest='lr_refactor_step', type=str, default='150, 200',
                         help='refactor learning rate at specified epochs')
-    parser.add_argument('--lr-factor', dest='lr_refactor_ratio', type=str, default=1,
+    parser.add_argument('--lr-factor', dest='lr_refactor_ratio', type=float, default=1,
                         help='ratio to refactor learning rate')
     parser.add_argument('--freeze', dest='freeze_pattern', type=str, default="^(conv1_|conv2_).*",
                         help='freeze layer pattern')
@@ -132,6 +134,7 @@ if __name__ == '__main__':
               num_example=args.num_example,
               class_names=class_names,
               label_pad_width=args.label_width,
+              optimizer_name=args.optimizer_name,
               freeze_layer_pattern=args.freeze_pattern,
               iter_monitor=args.monitor,
               monitor_pattern=args.monitor_pattern,

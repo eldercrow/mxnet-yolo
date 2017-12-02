@@ -76,7 +76,8 @@ def get_lr_scheduler(learning_rate, lr_refactor_step, lr_refactor_ratio,
         steps = [epoch_size * (x - begin_epoch) for x in iter_refactor if x > begin_epoch]
         if not steps:
             return (lr, None)
-        lr_scheduler = BurnInMultiFactorScheduler(burn_in=1000, step=steps, factor=lr_refactor_ratio)
+        lr_scheduler = mx.lr_scheduler.MultiFactorScheduler(step=steps, factor=lr_refactor_ratio)
+        # lr_scheduler = BurnInMultiFactorScheduler(burn_in=1000, step=steps, factor=lr_refactor_ratio)
         return (lr, lr_scheduler)
 
 def set_mod_params(mod, args, auxs, logger):
@@ -113,6 +114,7 @@ def train_net(net, train_path, num_classes, batch_size,
               data_shape, mean_pixels, resume, finetune, pretrained, epoch,
               prefix, ctx, begin_epoch, end_epoch, frequent, learning_rate,
               momentum, weight_decay, lr_refactor_step, lr_refactor_ratio,
+              optimizer_name='nadam',
               freeze_layer_pattern='',
               shape_range=(320, 512), random_shape_step=0, random_shape_epoch=10,
               num_example=10000, label_pad_width=350,
@@ -289,6 +291,21 @@ def train_net(net, train_path, num_classes, batch_size,
         fit_ends = [end_epoch]
         data_shapes = [data_shape]
 
+    learning_rate, lr_scheduler = get_lr_scheduler(learning_rate, lr_refactor_step,
+        lr_refactor_ratio, num_example, batch_size, begin_epoch)
+    optimizer_params={'learning_rate':learning_rate,
+                      'wd':weight_decay,
+                      'lr_scheduler':lr_scheduler,
+                      'clip_gradient':10,
+                      'rescale_grad': 1.0 }
+    if optimizer_name in ('sgd', 'nag'):
+        optimizer_params['momentum'] = momentum
+    # optimizer_params={'learning_rate':learning_rate,
+    #                   'momentum':momentum,
+    #                   'wd':weight_decay,
+    #                   'lr_scheduler':lr_scheduler,
+    #                   'clip_gradient':10,
+    #                   'rescale_grad': 1.0 }
     for begin, end in zip(fit_begins, fit_ends):
         if len(data_shapes) == 1:
             data_shape = data_shapes[0]
@@ -305,19 +322,6 @@ def train_net(net, train_path, num_classes, batch_size,
         else:
             val_iter = None
 
-        learning_rate, lr_scheduler = get_lr_scheduler(learning_rate, lr_refactor_step,
-            lr_refactor_ratio, num_example, batch_size, begin_epoch)
-        optimizer_params={'learning_rate':learning_rate,
-                          'wd':weight_decay,
-                          'lr_scheduler':lr_scheduler,
-                          'clip_gradient':10,
-                          'rescale_grad': 1.0 }
-        # optimizer_params={'learning_rate':learning_rate,
-        #                   'momentum':momentum,
-        #                   'wd':weight_decay,
-        #                   'lr_scheduler':lr_scheduler,
-        #                   'clip_gradient':10,
-        #                   'rescale_grad': 1.0 }
 
         # more informatic parameter setting
         if not mod.binded:
@@ -330,7 +334,7 @@ def train_net(net, train_path, num_classes, batch_size,
                 validation_metric=valid_metric,
                 batch_end_callback=batch_end_callback,
                 epoch_end_callback=epoch_end_callback,
-                optimizer='nadam',
+                optimizer=optimizer_name,
                 optimizer_params=optimizer_params,
                 begin_epoch=begin,
                 num_epoch=end,

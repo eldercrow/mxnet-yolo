@@ -22,9 +22,13 @@ class RPNFocalLoss(mx.operator.CustomOp):
 
         # for debug
         p = mx.nd.pick(in_data[1], in_data[2], axis=1, keepdims=True)
-
         rp = mx.nd.pick(in_data[4], in_data[2] > 0, axis=1, keepdims=True)
-        p *= rp
+
+        p_fg = p * rp
+        p_bg = p + rp - p*rp
+        fg_mask = in_data[2] > 0
+
+        p = p_fg * fg_mask + p_bg * (1 - fg_mask)
 
         ce = -mx.nd.log(mx.nd.maximum(p, self.eps))
 
@@ -40,7 +44,12 @@ class RPNFocalLoss(mx.operator.CustomOp):
         cls_target = mx.nd.reshape(in_data[2], (0, 1, -1))
         p0 = mx.nd.pick(in_data[1], cls_target, axis=1, keepdims=True)
         rp = mx.nd.pick(in_data[4], cls_target > 0, axis=1, keepdims=True)
-        p = p0 * rp
+
+        p_fg = p0 * rp
+        p_bg = p0 + rp - p0*rp
+        fg_mask = cls_target > 0
+
+        p = p_fg * fg_mask + p_bg * (1 - fg_mask)
 
         ce = -mx.nd.log(mx.nd.maximum(p, self.eps))
 
@@ -57,18 +66,26 @@ class RPNFocalLoss(mx.operator.CustomOp):
         g = (in_data[1] - label_mask) * gf
         g *= (cls_target >= 0) # (n_batch, n_class, n_anchor)
 
-        obj_mask = mx.nd.one_hot(mx.nd.reshape(cls_target > 0, (0, -1)), 2,
+        obj_mask = mx.nd.one_hot(mx.nd.reshape(fg_mask, (0, -1)), 2,
                 on_value=1, off_value=0)
         obj_mask = mx.nd.transpose(obj_mask, (0, 2, 1))
 
         gr = (in_data[4] - obj_mask) * gf
         gr *= (cls_target >= 0)
 
+        # care fg and bg
+        rp_fg = rp * fg_mask
+        rp_bg = rp * (1 - fg_mask)
+        rp = rp_fg + (1 - rp_bg)
         g *= rp
+
+        p0_fg = p0 * fg_mask
+        p0_bg = p0 * (1 - fg_mask)
+        p0 = p0_fg + (1 - p0_bg)
         gr *= p0
 
         if self.normalize:
-            norm = mx.nd.sum(cls_target > 0).asscalar()
+            norm = mx.nd.sum(fg_mask).asscalar()
             g /= norm
             gr /= norm
 
