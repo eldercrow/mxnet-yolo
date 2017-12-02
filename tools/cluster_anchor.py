@@ -99,7 +99,7 @@ def clsuter_anchor(imdb, box_shapes, n_cluster, data_shape, th_iou=0.5):
 
     # k-means refinement
     prev_midx = None
-    for k in range(200):
+    for k in range(500):
         iou_cluster = np.zeros((n_label, n_cluster))
         for i, bb in enumerate(cshapes):
             iou_cluster[:, i] = _compute_iou(bb, wh_label)

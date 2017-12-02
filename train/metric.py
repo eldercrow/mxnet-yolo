@@ -10,8 +10,8 @@ class MultiBoxMetric(mx.metric.EvalMetric):
         self.eps = eps
 
         super(MultiBoxMetric, self).__init__('MultiBox')
-        self.num = 2
-        self.name = ['CrossEntropy', 'NegLogIOU']
+        self.num = 3
+        self.name = ['CrossEntropy', 'NegLogIOU', 'RPNEntropy']
 
         self.reset()
 
@@ -69,6 +69,12 @@ class MultiBoxMetric(mx.metric.EvalMetric):
         loc_label = preds[3].asnumpy()
         self.sum_metric[1] += np.sum(loc_loss)
         self.num_inst[1] += np.sum(loc_label) / 4
+
+        loss_rpn = preds[5].asnumpy()
+        loss_rpn *= (cls_label >= 0)
+
+        self.sum_metric[2] += loss_rpn.sum()
+        self.num_inst[2] += np.sum(cls_label > 0)
 
     def get(self):
         """Get the current evaluation result.
