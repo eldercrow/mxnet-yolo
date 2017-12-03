@@ -11,10 +11,10 @@ Changes from the original algorithm:
 - [MobileNet](https://arxiv.org/abs/1704.04861) as the backbone network.
 
 TODO:
-- (done) ~~Replace cpp layers to python layers.~~
-- (done) ~~Add bounding box clutering method.~~
-- (done) ~~Apply focal loss.~~
-- (done) ~~Apply IOU loss for regressor training.~~
+- [x] Replace cpp layers to python layers.
+- [x] Add bounding box clutering method.
+- [x] Apply focal loss.
+- [x] Apply IOU loss for regressor training.
 
 Current result:
 ```
