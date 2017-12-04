@@ -109,8 +109,12 @@ class RPNSmoothedFocalLoss(mx.operator.CustomOp):
             gr /= norm
             g_th /= norm
         if mx.nd.uniform(0, 1, (1,)).asscalar() < 0.001:
+<<<<<<< HEAD
+            logging.getLogger().info('Current th_prob for smoothed CE: {}'.format(th_prob))
+=======
             logging.getLogger().info('{}: current th_prob for smoothed CE = {}'.format( \
                     type(self).__name__, th_prob))
+>>>>>>> 52a6d74f6a832f3101eb127a3dfd6007c82fccf5
 
         self.assign(in_grad[0], req[0], g)
         self.assign(in_grad[1], req[1], 0)
@@ -137,7 +141,11 @@ class RPNSmoothedFocalLossProp(mx.operator.CustomOpProp):
         return ['cls_pred', 'cls_prob', 'cls_target', 'rpn_pred', 'rpn_prob', 'th_prob']
 
     def list_outputs(self):
+<<<<<<< HEAD
+        return ['cls_prob']
+=======
         return ['cls_prob', 'cls_loss']
+>>>>>>> 52a6d74f6a832f3101eb127a3dfd6007c82fccf5
 
     def infer_shape(self, in_shape):
         # in_shape[3] = (1,)

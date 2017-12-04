@@ -101,7 +101,7 @@ class SmoothedFocalLossProp(mx.operator.CustomOpProp):
         return ['cls_pred', 'cls_prob', 'cls_target', 'th_prob']
 
     def list_outputs(self):
-        return ['cls_prob', 'cls_loss']
+        return ['cls_prob']
 
     def infer_shape(self, in_shape):
         # in_shape[3] = (1,)
