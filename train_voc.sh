@@ -13,7 +13,7 @@ python train.py \
     --pretrained /home/hyunjoon/github/model_mxnet/mobilenet/mobilenet \
     --epoch 0 \
     --freeze '^(conv1|conv2).*' \
-    --optimizer-name nag \
+    --optimizer-name sgdnadam \
     --lr 5e-03 \
     --lr-steps 80,110,130 \
     --lr-factor 0.1 \

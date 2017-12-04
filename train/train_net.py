@@ -12,6 +12,7 @@ from evaluate.eval_metric import MApMetric, VOC07MApMetric
 from config.config import cfg
 from train.lr_scheduler import BurnInMultiFactorScheduler
 from symbol.symbol_builder import get_symbol_train
+from train.sgdnadam import SGDNAdam
 
 def convert_pretrained(name, args):
     """
@@ -334,7 +335,7 @@ def train_net(net, train_path, num_classes, batch_size,
                 validation_metric=valid_metric,
                 batch_end_callback=batch_end_callback,
                 epoch_end_callback=epoch_end_callback,
-                optimizer=optimizer_name,
+                optimizer='sgdnadam',
                 optimizer_params=optimizer_params,
                 begin_epoch=begin,
                 num_epoch=end,
