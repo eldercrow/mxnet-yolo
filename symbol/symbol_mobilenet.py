@@ -1,18 +1,34 @@
 import mxnet as mx
 
 
+def batchnorm(data, name, use_global_stats=False):
+    return mx.sym.BatchNorm(data, name=name, use_global_stats=use_global_stats,
+            fix_gamma=False, eps=1e-04, momentum=0.99)
+
+
+def conv_bn(data, name, \
+        num_filter, kernel=(3, 3), pad=(1, 1), stride=(1, 1), num_group=1, wd_mult=1.0, \
+        use_global_stats=False):
+    #
+    conv_name='conv'+name
+    conv_w = mx.sym.var(name=conv_name+'_weight', lr_mult=1.0, wd_mult=wd_mult)
+
+    conv = mx.sym.Convolution(data, name=conv_name, weight=conv_w, num_filter=num_filter, \
+            kernel=kernel, pad=pad, stride=stride, num_group=num_group, no_bias=True)
+    bn = batchnorm(conv, name=conv_name+'_bn', use_global_stats=use_global_stats)
+    return bn
+
+
 def conv_bn_relu(data, name, \
         num_filter, kernel=(3, 3), pad=(1, 1), stride=(1, 1), num_group=1, wd_mult=1.0, \
         use_global_stats=False):
     #
     conv_name='conv'+name
     conv_w = mx.sym.var(name=conv_name+'_weight', lr_mult=1.0, wd_mult=wd_mult)
-    conv_b = None
 
-    conv = mx.sym.Convolution(data, name=conv_name, weight=conv_w, bias=conv_b, num_filter=num_filter, \
+    conv = mx.sym.Convolution(data, name=conv_name, weight=conv_w, num_filter=num_filter, \
             kernel=kernel, pad=pad, stride=stride, num_group=num_group, no_bias=True)
-    bn = mx.sym.BatchNorm(conv, name=conv_name+'_bn', \
-            use_global_stats=use_global_stats, fix_gamma=False, eps=1e-04, momentum=0.99)
+    bn = batchnorm(conv, name=conv_name+'_bn', use_global_stats=use_global_stats)
     relu = mx.sym.Activation(bn, name='relu'+name, act_type='relu')
     return relu
 
@@ -24,11 +40,12 @@ def depthwise_unit(data, name, nf_dw, nf_sep,
     if not no_act:
         conv_dw = conv_bn_relu(data, name=name+'_dw', \
                 num_filter=nf_dw, kernel=kernel, pad=pad, stride=stride, num_group=nf_dw, \
-                wd_mult=0.01, use_global_stats=use_global_stats)
+                wd_mult=0.0, use_global_stats=use_global_stats)
     else:
-        conv_dw = mx.sym.Convolution(data, name=name+'dw_conv', \
-                num_filter=nf_dw, kernel=kernel, pad=pad, stride=stride, num_group=nf_dw,
-                wd_mult=0.01)
+        conv_dw = conv_bn(data, name=name+'_dw', \
+                num_filter=nf_dw, kernel=kernel, pad=pad, stride=stride, num_group=nf_dw, \
+                wd_mult=0.0, use_global_stats=use_global_stats)
+
     if nf_sep == 0:
         return conv_dw
     conv_sep = conv_bn_relu(conv_dw, name=name+'_sep', \

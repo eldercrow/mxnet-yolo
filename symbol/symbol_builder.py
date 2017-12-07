@@ -10,6 +10,7 @@ from layer.rpn_smoothed_focal_loss_layer import *
 from layer.multibox_detection_layer import *
 from layer.roi_transform_layer import *
 from layer.iou_loss_layer import *
+from layer.log_wing_loss import *
 from layer.merge_rpn_cls_layer import *
 from config.config import cfg
 
@@ -41,7 +42,7 @@ def import_module(module_name):
     return importlib.import_module(module_name)
 
 
-def get_preds(body_rpn, body, num_classes, use_global_stats):
+def get_preds(body_rpn, body_loc, body, num_classes, use_global_stats):
     #
     anchor_shapes = cfg['anchor_shapes']
     num_anchor = len(anchor_shapes) / 2
@@ -69,8 +70,8 @@ def get_preds(body_rpn, body, num_classes, use_global_stats):
             num_filter=num_anchor*num_classes, kernel=(1, 1), pad=(0, 0))
 
     # bb and iou prediction
-    loc_preds = depthwise_unit(body, 'loc_pred_',
-            nf_dw=1024, nf_sep=0, kernel=(3, 3), pad=(1, 1),
+    loc_preds = depthwise_unit(body_loc, 'loc_pred_',
+            nf_dw=256, nf_sep=0, kernel=(3, 3), pad=(1, 1),
             no_act=True, use_global_stats=use_global_stats)
     loc_preds = mx.sym.Convolution(loc_preds, name='loc_pred_conv',
             num_filter=num_anchor*4, kernel=(1, 1), pad=(0, 0))
@@ -128,10 +129,10 @@ def get_symbol_train(network, num_classes,
         kwargs['use_global_stats'] = False
 
     # sys.path.append(os.path.join(cfg.ROOT_DIR, 'symbol'))
-    body_rpn, body = import_module(network).get_symbol(num_classes, **kwargs)
+    body_rpn, body_loc, body = import_module(network).get_symbol(num_classes, **kwargs)
 
     rpn_preds, rpn_probs, cls_preds, cls_probs, loc_preds, anchor_boxes = \
-            get_preds(body_rpn, body, num_classes, use_global_stats)
+            get_preds(body_rpn, body_loc, body, num_classes, use_global_stats)
 
     # get target GT label
     tmp = mx.sym.Custom(*[anchor_boxes, label, cls_probs], name='yolo_target',
@@ -157,26 +158,30 @@ def get_symbol_train(network, num_classes,
         w_reg_rpn = cfg.train['smooth_ce_lambda'] * 2
 
         th_sce_cls = mx.sym.var(name='th_sce_cls', shape=(1,), dtype=np.float32, \
-                init=mx.init.Constant(np.log(th_prob)))
-        th_sce_cls = mx.sym.exp(th_sce_cls)
+                init=mx.init.Constant(0.0)) #np.log(th_prob)))
+        th_sce_cls = mx.sym.sigmoid(th_sce_cls)
         cls_preds, cls_loss = mx.sym.Custom( \
                 cls_preds, cls_probs, cls_target, rpn_preds, rpn_probs, th_sce_cls, \
                 op_type='rpn_smoothed_focal_loss', name='cls_loss', \
-                gamma=gamma, alpha=alpha, th_prob=th_prob, w_reg=w_reg_cls, normalize=True)
+                gamma=gamma, alpha=alpha, normalize=True) #th_prob=th_prob, w_reg=w_reg_cls, normalize=True)
 
         th_sce_rpn = mx.sym.var(name='th_sce_rpn', shape=(1,), dtype=np.float32, \
-                init=mx.init.Constant(np.log(th_prob)))
-        th_sce_rpn = mx.sym.exp(th_sce_rpn)
+                init=mx.init.Constant(0.0)) #np.log(th_prob)))
+        th_sce_rpn = mx.sym.sigmoid(th_sce_rpn)
         rpn_preds, rpn_loss = mx.sym.Custom(rpn_preds, rpn_probs, rpn_target, th_sce_rpn,
                 op_type='smoothed_focal_loss', name='rpn_loss',
-                gamma=gamma, alpha=alpha_rpn, th_prob=th_prob, w_reg=w_reg_rpn, normalize=True)
+                gamma=gamma, alpha=alpha_rpn, normalize=True) #th_prob=th_prob, w_reg=w_reg_rpn, normalize=True)
 
     # IOU loss
-    loc_preds_det, _ = mx.symbol.Custom(loc_preds, anchor_boxes,
-            name='roi_transform', op_type='roi_transform',
-            variances=(0.1, 0.1, 0.2, 0.2))
-    loc_loss, _, _, _ = mx.symbol.Custom(loc_preds_det, loc_target, loc_target_mask,
-            name='iou_loss', op_type='iou_loss')
+    loc_diff = (loc_preds - loc_target) * loc_target_mask
+    # loc_loss = mx.sym.smooth_l1(loc_diff, name='log_wing_loss', scalar=1.0)
+    loc_loss = mx.symbol.Custom(loc_diff, name='log_wing_loss', op_type='log_wing_loss')
+    loc_loss = mx.sym.MakeLoss(loc_loss, name='loc_loss', normalization='valid')
+    # loc_preds_det, _ = mx.symbol.Custom(loc_preds, anchor_boxes,
+    #         name='roi_transform', op_type='roi_transform',
+    #         variances=(0.1, 0.1, 0.2, 0.2))
+    # loc_loss, _, _, _ = mx.symbol.Custom(loc_preds_det, loc_target, loc_target_mask,
+    #         name='iou_loss', op_type='iou_loss')
     # loc_loss = mx.sym.MakeLoss(loc_loss, name='loc_loss')
 
     # monitoring training status
@@ -212,10 +217,13 @@ def get_symbol(network, num_classes,
     use_global_stats = True
     kwargs['use_global_stats'] = True
 
-    body_rpn, body = import_module(network).get_symbol(num_classes, **kwargs)
-
+    body_rpn, body_loc, body = import_module(network).get_symbol(num_classes, **kwargs)
     rpn_preds, rpn_probs, cls_preds, cls_probs, loc_preds, anchor_boxes = \
-            get_preds(body_rpn, body, num_classes, use_global_stats)
+            get_preds(body_rpn, body_loc, body, num_classes, use_global_stats)
+
+    # body_rpn, body = import_module(network).get_symbol(num_classes, **kwargs)
+    # rpn_preds, rpn_probs, cls_preds, cls_probs, loc_preds, anchor_boxes = \
+    #         get_preds(body_rpn, body, num_classes, use_global_stats)
 
     loc_preds_det = mx.sym.reshape(loc_preds, (0, -1))
 

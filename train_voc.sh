@@ -10,16 +10,17 @@ python train.py \
     --min-random-shape 320 \
     --max-random-shape 512 \
     --random-shape-step 32 \
+    --freeze '^(conv1|conv2).*' \
+    --optimizer-name gnadam \
+    --lr 5e-03 \
+    --wd 5e-04 \
+    --lr-steps 80,110 \
+    --lr-factor 0.1 \
     --pretrained /home/hyunjoon/github/model_mxnet/mobilenet/mobilenet \
     --epoch 0 \
-    --freeze '^(conv1|conv2).*' \
-    --optimizer-name sgdnadam \
-    --lr 5e-03 \
-    --lr-steps 80,110,130 \
-    --lr-factor 0.1 \
-    --end-epoch 151 \
+    --end-epoch 130 \
     --frequent 100 \
-    --nms 0.35 \
+    --nms 0.45 \
     --gpus 6,7
     # --wd 1e-04 \
     # --lr-steps 3,3,4 \

@@ -85,7 +85,7 @@ class RPNFocalLoss(mx.operator.CustomOp):
         gr *= p0
 
         if self.normalize:
-            norm = mx.nd.sum(fg_mask).asscalar()
+            norm = mx.nd.sum(fg_mask).asscalar() + in_data[0].shape[0]
             g /= norm
             gr /= norm
 

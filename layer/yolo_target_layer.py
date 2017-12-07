@@ -12,12 +12,13 @@ class YoloTarget(mx.operator.CustomOp):
     '''
     Python (inexact) implementation of yolo output layer.
     '''
-    def __init__(self, th_iou, th_iou_neg, th_iou_pass):
+    def __init__(self, th_iou, th_iou_neg, th_iou_pass, variances):
         #
         super(YoloTarget, self).__init__()
         self.th_iou = th_iou
         self.th_iou_neg = th_iou_neg
         self.th_iou_pass = th_iou_pass
+        self.variances = variances
 
         # precompute nms candidates
         self.anchors = None
@@ -114,7 +115,7 @@ class YoloTarget(mx.operator.CustomOp):
             target_cls[ridx] = -1
             if len(pidx) > 0:
                 target_cls[pidx] = gt_cls
-                rt, rm = _compute_loc_target(label[1:], self.anchors[pidx, :])
+                rt, rm = _compute_loc_target(label[1:], self.anchors[pidx, :], self.variances)
                 target_reg[pidx, :] = rt
                 mask_reg[pidx, :] = rm
 
@@ -149,10 +150,20 @@ def _compute_iou(label, anchors_t, area_anchors_t):
     return iou.asnumpy() # (num_anchors, )
 
 
-def _compute_loc_target(gt_bb, bb):
-    loc_target = np.tile(np.reshape(gt_bb, (1, -1)), (bb.shape[0], 1))
-    loc_mask = np.ones_like(loc_target)
-    return loc_target, loc_mask
+def _compute_loc_target(gt_bb, bb, variances):
+    #
+    loc_target = np.zeros_like(bb)
+    aw = bb[:, 2] - bb[:, 0]
+    ah = bb[:, 3] - bb[:, 1]
+    loc_target[:, 0] = (gt_bb[2] + gt_bb[0] - bb[:, 2] - bb[:, 0]) * 0.5 / aw
+    loc_target[:, 1] = (gt_bb[3] + gt_bb[1] - bb[:, 3] - bb[:, 1]) * 0.5 / ah
+    loc_target[:, 2] = np.log((gt_bb[2] - gt_bb[0]) / aw)
+    loc_target[:, 3] = np.log((gt_bb[3] - gt_bb[1]) / ah)
+    return loc_target / variances, np.ones_like(loc_target)
+# def _compute_loc_target(gt_bb, bb):
+#     loc_target = np.tile(np.reshape(gt_bb, (1, -1)), (bb.shape[0], 1))
+#     loc_mask = np.ones_like(loc_target)
+#     return loc_target, loc_mask
 
 
 def _adjust_ratio(bb, ratio):
@@ -196,12 +207,13 @@ def _autofit_ratio(bb, max_ratio=3.0):
 
 @mx.operator.register("yolo_target")
 class YoloTargetProp(mx.operator.CustomOpProp):
-    def __init__(self, th_iou=0.5, th_iou_neg=0.4, th_iou_pass=0.25):
+    def __init__(self, th_iou=0.5, th_iou_neg=0.4, th_iou_pass=0.25, variances=(0.1, 0.1, 0.2, 0.2)):
         #
         super(YoloTargetProp, self).__init__(need_top_grad=False)
         self.th_iou = float(th_iou)
         self.th_iou_neg = float(th_iou_neg)
         self.th_iou_pass = float(th_iou_pass)
+        self.variances = literal_eval(str(variances))
 
     def list_arguments(self):
         return ['anchors', 'label', 'probs_cls']
@@ -220,4 +232,4 @@ class YoloTargetProp(mx.operator.CustomOpProp):
         return in_shape, out_shape, []
 
     def create_operator(self, ctx, shapes, dtypes):
-        return YoloTarget(self.th_iou, self.th_iou_neg, self.th_iou_pass)
+        return YoloTarget(self.th_iou, self.th_iou_neg, self.th_iou_pass, self.variances)

@@ -24,6 +24,11 @@ def get_symbol(num_classes, use_global_stats):
             num_filter=256, kernel=(1, 1), pad=(0, 0),
             use_global_stats=use_global_stats)
 
+    # loc
+    loc_1 = conv_bn_relu(concat6, 'loc_1',
+            num_filter=256, kernel=(1, 1), pad=(0, 0),
+            use_global_stats=use_global_stats)
+
     # extra layers
     conv7_1 = conv_bn_relu(concat6, '7_1',
             num_filter=1024, kernel=(1, 1), pad=(0, 0),
@@ -31,13 +36,14 @@ def get_symbol(num_classes, use_global_stats):
 
     conv8_1 = depthwise_unit(conv7_1, '8_1',
             nf_dw=1024, nf_sep=1024, kernel=(5, 5), pad=(2, 2),
+            no_act=True,
             use_global_stats=use_global_stats)
     conv8_2 = conv7_1 + conv8_1
     # conv8_2 = depthwise_unit(conv8_1, '8_2',
     #         nf_dw=1024, nf_sep=1024, kernel=(3, 3), pad=(1, 1),
     #         use_global_stats=use_global_stats)
 
-    return rpn_1, conv8_2
+    return rpn_1, loc_1, conv8_2
     #
     # th_small = 0.04 if not 'th_small' in kwargs else kwargs['th_small']
     # cls_probs = mx.sym.SoftmaxActivation(cls_preds, mode='channel')

@@ -7,12 +7,11 @@ from ast import literal_eval
 class RPNSmoothedFocalLoss(mx.operator.CustomOp):
     '''
     '''
-    def __init__(self, alpha, gamma, th_prob, w_reg, normalize):
+    def __init__(self, alpha, gamma, normalize):
         super(RPNSmoothedFocalLoss, self).__init__()
         self.alpha = alpha
         self.gamma = gamma
-        self.th_prob = th_prob
-        self.w_reg = w_reg
+        # self.w_reg = w_reg
         self.normalize = normalize
 
         self.eps = np.finfo(np.float32).eps
@@ -22,7 +21,8 @@ class RPNSmoothedFocalLoss(mx.operator.CustomOp):
         Just pass the data.
         '''
         self.assign(out_data[0], req[0], in_data[1])
-        th_prob = in_data[5].asscalar()
+        th_prob0 = in_data[5].asscalar()
+        th_prob = th_prob0 / in_data[0].shape[1]
 
         # for debug
         p = mx.nd.pick(in_data[1], in_data[2], axis=1, keepdims=True)
@@ -42,6 +42,7 @@ class RPNSmoothedFocalLoss(mx.operator.CustomOp):
 
         sce *= mx.nd.power(1 - p, self.gamma)
         sce *= (in_data[2] > 0) * self.alpha + (in_data[2] == 0) * (1 - self.alpha)
+        sce += th_prob0 * th_prob0 # regularizer
 
         self.assign(out_data[1], req[1], sce)
 
@@ -50,7 +51,8 @@ class RPNSmoothedFocalLoss(mx.operator.CustomOp):
         Reweight loss according to focal loss.
         '''
         cls_target = in_data[2]
-        th_prob = in_data[5].asscalar()
+        th_prob0 = in_data[5].asscalar()
+        th_prob = th_prob0 / in_data[0].shape[1]
         fg_mask = cls_target > 0
 
         p0 = mx.nd.pick(in_data[1], cls_target, axis=1, keepdims=True)
@@ -100,21 +102,19 @@ class RPNSmoothedFocalLoss(mx.operator.CustomOp):
         gr *= p0
 
         g_th = mx.nd.minimum(p, th_prob) / th_prob / th_prob - 1.0 / th_prob
+        g_th /= in_data[0].shape[1]
         g_th *= mx.nd.power(1 - p, self.gamma)
-        g_th = mx.nd.sum(g_th) + cls_target.size * th_prob * 2.0 * self.w_reg
+        g_th = mx.nd.sum(g_th) + cls_target.size * th_prob0 * 2.0 #* self.w_reg
 
         if self.normalize:
-            norm = mx.nd.sum(fg_mask).asscalar()
+            norm = mx.nd.sum(fg_mask).asscalar() + in_data[0].shape[0]
             g /= norm
             gr /= norm
             g_th /= norm
         if mx.nd.uniform(0, 1, (1,)).asscalar() < 0.001:
-<<<<<<< HEAD
-            logging.getLogger().info('Current th_prob for smoothed CE: {}'.format(th_prob))
-=======
             logging.getLogger().info('{}: current th_prob for smoothed CE = {}'.format( \
                     type(self).__name__, th_prob))
->>>>>>> 52a6d74f6a832f3101eb127a3dfd6007c82fccf5
+            # logging.getLogger().info('Current th_prob for smoothed CE: {}'.format(th_prob))
 
         self.assign(in_grad[0], req[0], g)
         self.assign(in_grad[1], req[1], 0)
@@ -128,24 +128,19 @@ class RPNSmoothedFocalLoss(mx.operator.CustomOp):
 class RPNSmoothedFocalLossProp(mx.operator.CustomOpProp):
     '''
     '''
-    def __init__(self, alpha=0.25, gamma=2.0, th_prob=0.01, w_reg=1.0, normalize=False):
+    def __init__(self, alpha=0.25, gamma=2.0, normalize=False):
         #
         super(RPNSmoothedFocalLossProp, self).__init__(need_top_grad=False)
         self.alpha = float(alpha)
         self.gamma = float(gamma)
-        self.th_prob = float(th_prob)
-        self.w_reg = float(w_reg)
+        # self.w_reg = float(w_reg)
         self.normalize = bool(literal_eval(str(normalize)))
 
     def list_arguments(self):
         return ['cls_pred', 'cls_prob', 'cls_target', 'rpn_pred', 'rpn_prob', 'th_prob']
 
     def list_outputs(self):
-<<<<<<< HEAD
-        return ['cls_prob']
-=======
         return ['cls_prob', 'cls_loss']
->>>>>>> 52a6d74f6a832f3101eb127a3dfd6007c82fccf5
 
     def infer_shape(self, in_shape):
         # in_shape[3] = (1,)
@@ -159,4 +154,4 @@ class RPNSmoothedFocalLossProp(mx.operator.CustomOpProp):
     #     return [dtype, dtype, dtype, dtype], [dtype], []
 
     def create_operator(self, ctx, shapes, dtypes):
-        return RPNSmoothedFocalLoss(self.alpha, self.gamma, self.th_prob, self.w_reg, self.normalize)
+        return RPNSmoothedFocalLoss(self.alpha, self.gamma, self.normalize)

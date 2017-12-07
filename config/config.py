@@ -9,7 +9,7 @@ RandCropper = namedtuple_with_defaults('RandCropper',
     min_crop_object_coverages, max_crop_object_coverages, \
     max_crop_trials',
     [0.0, 1.0,
-    0.5, 2.0,
+    0.75, 1.333,
     0.0, 1.0,
     0.0, 1.0,
     0.0, 1.0,
@@ -108,7 +108,7 @@ cfg.train.focal_loss_alpha = 0.25
 cfg.train.focal_loss_alpha_rpn = 0.5
 cfg.train.focal_loss_gamma = 2.0
 cfg.train.smoothl1_weight = 1.0
-cfg.train.use_smooth_ce = True
+cfg.train.use_smooth_ce = False
 cfg.train.smooth_ce_th = 1e-02
 cfg.train.smooth_ce_lambda = 1.0
 

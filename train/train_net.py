@@ -13,6 +13,8 @@ from config.config import cfg
 from train.lr_scheduler import BurnInMultiFactorScheduler
 from symbol.symbol_builder import get_symbol_train
 from train.sgdnadam import SGDNAdam
+from train.gnadam import GNadam
+
 
 def convert_pretrained(name, args):
     """
@@ -294,10 +296,10 @@ def train_net(net, train_path, num_classes, batch_size,
 
     learning_rate, lr_scheduler = get_lr_scheduler(learning_rate, lr_refactor_step,
         lr_refactor_ratio, num_example, batch_size, begin_epoch)
-    optimizer_params={'learning_rate':learning_rate,
-                      'wd':weight_decay,
-                      'lr_scheduler':lr_scheduler,
-                      'clip_gradient':10,
+    optimizer_params={'learning_rate': learning_rate,
+                      'wd': weight_decay,
+                      'lr_scheduler': lr_scheduler,
+                      'clip_gradient': 4.0,
                       'rescale_grad': 1.0 }
     if optimizer_name in ('sgd', 'nag'):
         optimizer_params['momentum'] = momentum
@@ -335,7 +337,7 @@ def train_net(net, train_path, num_classes, batch_size,
                 validation_metric=valid_metric,
                 batch_end_callback=batch_end_callback,
                 epoch_end_callback=epoch_end_callback,
-                optimizer='sgdnadam',
+                optimizer=optimizer_name,
                 optimizer_params=optimizer_params,
                 begin_epoch=begin,
                 num_epoch=end,

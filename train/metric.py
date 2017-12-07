@@ -59,7 +59,7 @@ class MultiBoxMetric(mx.metric.EvalMetric):
         loss *= (cls_label >= 0)
 
         self.sum_metric[0] += loss.sum()
-        self.num_inst[0] += np.sum(cls_label > 0)
+        self.num_inst[0] += np.sum(cls_label > 0) + preds[0].shape[0]
 
         # -log IOU
         loc_loss = preds[1].asnumpy()
@@ -74,7 +74,7 @@ class MultiBoxMetric(mx.metric.EvalMetric):
         loss_rpn *= (cls_label >= 0)
 
         self.sum_metric[2] += loss_rpn.sum()
-        self.num_inst[2] += np.sum(cls_label > 0)
+        self.num_inst[2] += np.sum(cls_label > 0) + preds[0].shape[0]
 
     def get(self):
         """Get the current evaluation result.
