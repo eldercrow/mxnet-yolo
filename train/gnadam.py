@@ -5,9 +5,26 @@ register = mx.optimizer.Optimizer.register
 
 @register
 class GNadam(mx.optimizer.Optimizer):
-    '''
-    Just for test.
-    '''
+    """The Nesterov Adam optimizer.
+
+    Much like Adam is essentially RMSprop with momentum,
+    Nadam is Adam RMSprop with Nesterov momentum available
+    at http://cs229.stanford.edu/proj2015/054_report.pdf.
+
+    This optimizer accepts the following parameters in addition to those accepted
+    by :class:`.Optimizer`.
+
+    Parameters
+    ----------
+    beta1 : float, optional
+        Exponential decay rate for the first moment estimates.
+    beta2 : float, optional
+        Exponential decay rate for the second moment estimates.
+    epsilon : float, optional
+        Small value to avoid division by 0.
+    schedule_decay : float, optional
+        Exponential decay rate for the momentum schedule
+    """
     def __init__(self, learning_rate=0.001, beta1=0.9, beta2=0.999, epsilon=1e-8,
                  schedule_decay=0.004, **kwargs):
         super(GNadam, self).__init__(learning_rate=learning_rate, **kwargs)
@@ -22,24 +39,28 @@ class GNadam(mx.optimizer.Optimizer):
                 mx.nd.zeros(weight.shape, weight.context, dtype=weight.dtype))  # variance
 
     def update(self, index, weight, grad, state):
-        # assert(isinstance(weight, NDArray))
-        # assert(isinstance(grad, NDArray))
+        #
+        # assert(isinstance(weight, mx.nd.NDArray))
+        # assert(isinstance(grad, mx.nd.NDArray))
+        #
         self._update_count(index)
         lr = self._get_lr(index)
         wd = self._get_wd(index)
 
+        t = self._index_update_count[index]
+
         # preprocess grad
+        #
+        gw = mx.nd.sign(grad) * weight * wd
+        gw = mx.nd.minimum(gw, 0.0)
+        grad *= (1.0 + gw)
         grad *= self.rescale_grad
+        #
+        # grad = grad * self.rescale_grad + wd * weight
+        #
         if self.clip_gradient is not None:
             grad = mx.nd.clip(grad, -self.clip_gradient, self.clip_gradient)
-        grad += wd * weight * mx.nd.abs(grad)
-
-        w_nadam = self._update_nadam(index, weight, grad, state, lr, wd)
-        weight[:] += w_nadam
-
-    def _update_nadam(self, index, weight, grad, state, lr, wd):
         #
-        t = self._index_update_count[index]
 
         # warming momentum schedule
         momentum_t = self.beta1 * (1. - 0.5 * (pow(0.96, t * self.schedule_decay)))
@@ -58,4 +79,4 @@ class GNadam(mx.optimizer.Optimizer):
         m_t_bar = (1. - momentum_t) * grad_prime + momentum_t_1 * m_t_prime
 
         # update weight
-        return -lr * m_t_bar / (mx.nd.sqrt(v_t_prime) + self.epsilon)
+        weight[:] -= lr * m_t_bar / (mx.nd.sqrt(v_t_prime) + self.epsilon)

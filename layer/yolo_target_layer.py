@@ -95,20 +95,10 @@ class YoloTarget(mx.operator.CustomOp):
 
             if len(pidx) > 5:
                 pidx = np.random.choice(pidx, 5, replace=False)
-            elif len(pidx) < 3:
-                # TEST
-                iou_v = _compute_iou(_adjust_ratio(lsq, 2.0), self.anchors_t, self.area_anchors_t)
-                iou_h = _compute_iou(_adjust_ratio(lsq, 0.5), self.anchors_t, self.area_anchors_t)
-
-                iou_t = np.maximum(np.maximum(iou, iou_v), iou_h)
-                if np.max(iou_t) < self.th_iou_pass:
+            if len(pidx) == 0:
+                pidx = [np.argmax(iou)]
+                if iou[pidx] < self.th_iou_pass:
                     continue
-
-                sidx = np.argpartition(iou_t, iou_t.size - 5)
-                pidx = sidx[-5:]
-                pidx = pidx[np.where(iou_t[pidx] > self.th_iou_pass)[0]]
-                # ridx = sidx[-5:]
-                # pidx = pidx[np.where(iou_t[ridx] > self.th_iou_pass)[0]]
 
             # map ridx first, and then pidx
             ridx = ridx[target_cls[ridx] == 0]
