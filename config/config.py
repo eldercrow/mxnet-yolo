@@ -34,18 +34,17 @@ cfg = DotDict()
 cfg.ROOT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 
 cfg.anchor_shapes = [ \
-        0.836, 1.33,
-        2.597, 2.067,
-        2.406, 6.334,
-        4.836, 4.195,
-        1.227, 3.643,
-        7.25, 8.075,
-        4.017, 11.972,
-        16.176, 9.879,
-        8.963, 17.258,
-        20.137, 20.797,
-        ]
-cfg.anchor_shapes = [s / 2.0 for s in cfg.anchor_shapes]
+    0.579, 0.921,
+    0.849, 2.522,
+    1.798, 1.431,
+    1.666, 4.385,
+    3.348, 2.905,
+    2.781, 8.288,
+    5.019, 5.591,
+    6.205, 11.948,
+    11.199, 6.839,
+    13.941, 14.398,
+    ]
 # cfg.anchor_shapes = [ \
 #         0.534, 0.974,
 #         1.655, 1.374,
@@ -108,9 +107,6 @@ cfg.train.focal_loss_alpha = 0.25
 cfg.train.focal_loss_alpha_rpn = 0.5
 cfg.train.focal_loss_gamma = 2.0
 cfg.train.smoothl1_weight = 1.0
-cfg.train.use_smooth_ce = False
-cfg.train.smooth_ce_th = 1e-02
-cfg.train.smooth_ce_lambda = 1.0
 
 cfg.train = config_as_dict(cfg.train)  # convert to normal dict
 

@@ -1,5 +1,6 @@
 import tools.find_mxnet
 import mxnet as mx
+import numpy as np
 import logging
 import sys
 import os
@@ -14,6 +15,7 @@ from train.lr_scheduler import BurnInMultiFactorScheduler
 from symbol.symbol_builder import get_symbol_train
 from train.gnadam import GNadam
 from tools.load_checkpoint import load_checkpoint
+from tools.rand_sampler import RandScaler
 
 
 def get_lr_scheduler(learning_rate, lr_refactor_step, lr_refactor_ratio,
@@ -90,7 +92,7 @@ def set_mod_params(mod, args, auxs, logger):
     mod.set_params(arg_params=arg_params, aux_params=aux_params)
     return mod
 
-def train_net(net, imdb, 
+def train_net(net, imdb,
               batch_size, data_shape, mean_pixels,
               resume, finetune, pretrained, epoch,
               prefix, ctx, begin_epoch, end_epoch, frequent,
@@ -191,10 +193,11 @@ def train_net(net, imdb,
 
     class_names = imdb.classes
     num_example = imdb.num_images
+    num_classes = len(class_names)
 
     # load symbol
     # sys.path.append(os.path.join(cfg.ROOT_DIR, 'symbol'))
-    net = get_symbol_train(net, num_classes, nms_thresh, force_nms, nms_topk)
+    net = get_symbol_train('symbol_'+net, num_classes, nms_thresh, force_nms, nms_topk)
 
     # define layers with fixed weight/bias
     if freeze_layer_pattern.strip():
@@ -251,6 +254,12 @@ def train_net(net, imdb,
     batch_end_callback = mx.callback.Speedometer(batch_size, frequent=frequent)
     epoch_end_callback = mx.callback.do_checkpoint(prefix)
     monitor = mx.mon.Monitor(iter_monitor, pattern=monitor_pattern) if iter_monitor > 0 else None
+    optimizer_params={'learning_rate': learning_rate,
+                      'wd': weight_decay,
+                      'clip_gradient': 4.0,
+                      'rescale_grad': 1.0 / len(ctx) if len(ctx) > 0 else 1.0 }
+    if optimizer_name == 'sgd':
+        optimizer_params['momentum'] = momentum
 
     # run fit net, every n epochs we run evaluation network to get mAP
     if voc07_metric:
@@ -267,9 +276,9 @@ def train_net(net, imdb,
         #
         rand_asp = np.sqrt(np.power(random_aspect_exp, np.random.uniform(-1, 1)))
         dh = data_shape[1] / rand_asp
-        dh = int(np.round(dh / shape_step)) * img_stride
+        dh = int(np.round(dh / img_stride)) * img_stride
         dw = data_shape[2] * rand_asp
-        dw = int(np.round(dw / shape_step)) * img_stride
+        dw = int(np.round(dw / img_stride)) * img_stride
 
         rand_shape = (data_shape[0], dh, dw)
         logger.info('Setting random shape: ({}, {}, {})'.format(dh, dw, data_shape[0]))
@@ -278,13 +287,13 @@ def train_net(net, imdb,
         patch_size = max(data_shape)
         min_gt_scale = min_obj_size / float(patch_size)
         rand_scaler = RandScaler((dw, dh), min_gt_scale=min_gt_scale, force_resize=False)
-        train_iter = DetIter(imdb, batch_size, rand_shape, rand_scaler,
+        train_iter = DetIter(imdb, batch_size, rand_shape[1:], rand_scaler,
                              mean_pixels=mean_pixels, rand_mirror=cfg.train['rand_mirror_prob'] > 0,
                              shuffle=cfg.train['shuffle'], rand_seed=cfg.train['seed'],
                              is_train=True)
         if val_imdb:
             rand_scaler = RandScaler((dw, dh), no_random=True, force_resize=False)
-            val_iter = DetIter(val_imdb, batch_size, rand_shape, rand_scaler,
+            val_iter = DetIter(val_imdb, batch_size, rand_shape[1:], rand_scaler,
                                mean_pixels=mean_pixels, is_train=True)
         else:
             val_iter = None
@@ -304,8 +313,8 @@ def train_net(net, imdb,
                 epoch_end_callback=epoch_end_callback,
                 optimizer=optimizer_name,
                 optimizer_params=optimizer_params,
-                begin_epoch=begin,
-                num_epoch=end,
+                begin_epoch=be,
+                num_epoch=ee,
                 initializer=mx.init.Xavier(),
                 arg_params=args,
                 aux_params=auxs,

@@ -68,7 +68,7 @@ class MultiBoxMetric(mx.metric.EvalMetric):
             pdb.set_trace()
         loc_label = preds[3].asnumpy()
         self.sum_metric[1] += np.sum(loc_loss)
-        self.num_inst[1] += np.sum(loc_label) / 4
+        self.num_inst[1] += np.sum(loc_label)
 
         loss_rpn = preds[5].asnumpy()
         loss_rpn *= (cls_label >= 0)

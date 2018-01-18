@@ -8,7 +8,7 @@ sys.path.append(os.path.join(curr_path, '..'))
 from tools.prepare_dataset import *
 
 
-def clsuter_anchor(imdb, box_shapes, n_cluster, data_shape, th_iou=0.5):
+def clsuter_anchor(imdb, box_shapes, n_cluster, data_shape, stride, th_iou=0.5):
     '''
     imdb: imdb that contains labels we will use.
     box_shapes:
@@ -144,8 +144,8 @@ def clsuter_anchor(imdb, box_shapes, n_cluster, data_shape, th_iou=0.5):
     print 'cluster centers after k-means.'
     print np.round(cshapes, 3)
 
-    cratio = np.round(cshapes / 16.0, 3)
-    print 'divided by 16, for anchor layer parameter.'
+    cratio = np.round(cshapes / float(stride), 3)
+    print 'divided by {}, for anchor layer parameter.'.format(stride)
     for c in cratio:
         print '\t{}, {},'.format(c[0], c[1])
     # print 'squared cluster size and ratio.'
@@ -245,13 +245,16 @@ def parse_args():
                         default=5, type=int)
     parser.add_argument('--data-shape', dest='data_shape', help='data (image) shape',
                         default=416, type=int)
+    parser.add_argument('--stride', dest='stride', help='feature map stride',
+                        default=32, type=int)
     args = parser.parse_args()
     return args
 
 if __name__ == '__main__':
     args = parse_args()
 
-    sizes = np.arange(1, 21) / 20.0
+    max_sz = args.data_shape // args.stride + 1
+    sizes = np.arange(1, max_sz) / float(max_sz)
     sizes = np.power(2.0, sizes) - 1.0
     ratios = [1.0, 0.5, 0.3333, 0.25, 2.0, 3.0, 4.0]
     ratios = np.array(ratios)
@@ -267,6 +270,6 @@ if __name__ == '__main__':
 
     if args.dataset == 'pascal':
         imdb = load_pascal(args.set, args.year, args.root_path, False)
-        clsuter_anchor(imdb, shapes, args.num_cluster, args.data_shape)
+        clsuter_anchor(imdb, shapes, args.num_cluster, args.data_shape, args.stride)
     else:
         raise NotImplementedError("No implementation for dataset: " + args.dataset)

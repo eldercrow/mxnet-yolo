@@ -2,6 +2,7 @@ import mxnet as mx
 import numpy as np
 import cv2
 from tools.rand_sampler import RandSampler
+from tools.crop_roi_patch import crop_roi_patch
 
 class DetRecordIter(mx.io.DataIter):
     """
@@ -42,7 +43,7 @@ class DetRecordIter(mx.io.DataIter):
     """
     def __init__(self, path_imgrec, batch_size, data_shape, path_imglist="",
                  label_width=-1, label_pad_width=-1, label_pad_value=-1,
-                 resize_mode='force',  mean_pixels=[123.68, 116.779, 103.939],
+                 resize_mode='force', mean_pixels=[123.68, 116.779, 103.939],
                  label_name='yolo_output_label',
                  **kwargs):
         super(DetRecordIter, self).__init__()
@@ -139,12 +140,13 @@ class DetIter(mx.io.DataIter):
         whether in training phase, default True, if False, labels might
         be ignored
     """
-    def __init__(self, imdb, batch_size, data_shape, \
-                 mean_pixels=[128, 128, 128], rand_sampler, \
+    def __init__(self, imdb, batch_size, data_shape, rand_sampler, \
+                 mean_pixels=[128, 128, 128], \
                  rand_mirror=False, shuffle=False, rand_seed=None, \
                  is_train=True, max_crop_trial=50):
+        #
         super(DetIter, self).__init__()
-
+        #
         self._imdb = imdb
         self.batch_size = batch_size
         if isinstance(data_shape, int):
@@ -245,7 +247,7 @@ class DetIter(mx.io.DataIter):
         """
         perform data augmentations: crop, mirror, resize, sub mean, swap channels...
         """
-        if self.is_train and self._rand_samplers:
+        if self.is_train and self._rand_sampler:
             hh, ww, _ = data.shape
             rand_crop = self._rand_sampler.sample(label, (ww, hh))
             # cropping box
@@ -274,7 +276,7 @@ class DetIter(mx.io.DataIter):
                 label[valid_mask, 3] = tmp
 
         data = mx.nd.transpose(data, (2,0,1))
-        data = data.astype('float32') - self.mean_pixels
+        data = data.astype('float32') - self._mean_pixels
 
         if self._rand_sampler is not None and (not self._rand_sampler.no_random):
             data = (data + mx.nd.uniform(-25, 25, (3, 1, 1))) * mx.nd.uniform(0.5, 2.0, (1, 1, 1))

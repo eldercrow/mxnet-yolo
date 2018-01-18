@@ -15,7 +15,7 @@ def get_symbol(num_classes, use_global_stats):
     conv6 = bone.get_internals()['relu6_sep_output']
 
     # downsample conv5 and concat
-    conv5_6 = subpixel_downsample(conv5_5, 512, 2, 2)
+    conv5_6 = subpixel_downsample(conv5_5, 512, 2, 2, name='subdown')
 
     concat6 = mx.sym.concat(conv5_6, conv6, name='concat_6')
 

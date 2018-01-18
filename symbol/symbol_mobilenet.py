@@ -54,17 +54,16 @@ def depthwise_unit(data, name, nf_dw, nf_sep,
     return conv_sep
 
 
-def subpixel_downsample(data, ch, c, r, name=None):
+def subpixel_downsample(data, ch, c, r, name=''):
     '''
     '''
     if r == 1 and c == 1:
         return data
-    # data = (n, ch, h*r, w*c)
-    X = mx.sym.transpose(data, axes=(0, 3, 2, 1)) # (n, w*c, h*r, ch)
-    X = mx.sym.reshape(X, shape=(0, 0, -1, r*ch)) # (n, w*c, h, r*ch)
-    X = mx.sym.transpose(X, axes=(0, 2, 1, 3)) # (n, h, w*c, r*ch)
-    X = mx.sym.reshape(X, shape=(0, 0, -1, r*c*ch)) # (n, h, w, r*c*ch)
-    X = mx.sym.transpose(X, axes=(0, 3, 1, 2))
+    X = mx.sym.transpose(data, axes=(0, 2, 3, 1)) # (n, w, h, ch)
+    X = mx.sym.reshape(X, shape=(0, 0, -1, ch*c), name=name+'_rch') # (n, w, h*r, ch/r)
+    X = mx.sym.transpose(X, axes=(0, 2, 1, 3)) # (n, h*r, w, ch/r)
+    X = mx.sym.reshape(X, shape=(0, 0, -1, ch*c*r), name=name+'_rcch') # (n, h*r, w*c, ch/r/c)
+    X = mx.sym.transpose(X, axes=(0, 3, 2, 1)) # (n, ch/r/c, h*r, w*c)
     return X
 
 

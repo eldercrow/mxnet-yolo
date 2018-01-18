@@ -84,7 +84,7 @@ def estimate_mac(net, data_shape, label_shape=None):
         gflop = np.round(flop / float(2**30), 3)
         print('{}: {:,} ({:,})'.format(li, flop, gflop))
     print('-------------------------------------------------------')
-    print('Total {:,} ({:,}) FLOPs (GFLOPs) for conv, bn, fc layers.'.format(total_mac, total_gmac))
+    print('Total {:,} ({:,}) MACs (GMACs) for conv, bn, fc layers.'.format(total_mac, total_gmac))
     print('-------------------------------------------------------')
 
     return total_mac, total_gmac
@@ -108,7 +108,7 @@ def _estimate_conv(layer, out_shapes, arg_shapes):
     wshape = np.array(wshape)
     bshape = np.array(bshape)
 
-    flop_num = np.prod(oshape) * (np.prod(wshape) * 2 + np.prod(bshape))
+    flop_num = np.prod(oshape) * (np.prod(wshape) * 1 + np.prod(bshape))
     return flop_num
 
 
@@ -151,7 +151,7 @@ def _estimate_fc(layer, out_shapes, arg_shapes):
     wshape = np.array(wshape)
     bshape = np.array(bshape)
 
-    flop_num = oshape[0] * (np.prod(wshape) * 2 + np.prod(bshape))
+    flop_num = oshape[0] * (np.prod(wshape) * 1 + np.prod(bshape))
     return flop_num
 
 
@@ -164,9 +164,6 @@ if __name__ == '__main__':
     from rpn_focal_loss_layer import *
     from merge_rpn_cls_layer import *
     from yolo_target_layer import *
-    from smoothed_focal_loss_layer import *
-    from roi_transform_layer import *
-    from iou_loss_layer import *
 
     args = parse_args()
     if not args.epoch:

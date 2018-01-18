@@ -3,8 +3,9 @@ import tools.find_mxnet
 import mxnet as mx
 import os
 import sys
-from train.train_net import train_net
+from train.train_net_imdb import train_net
 from dataset.dataset_loader import load_pascal
+from config.config import cfg
 
 def parse_args():
     #
@@ -131,11 +132,11 @@ if __name__ == '__main__':
               min_obj_size=args.min_obj_size,
               use_difficult=args.use_difficult,
               random_aspect_exp=args.random_aspect_exp,
-              random_aspect_epoch=args.random_shape_epoch,
+              random_aspect_epoch=args.random_aspect_epoch,
               img_stride=args.img_stride,
               nms_thresh=args.nms_thresh,
               ovp_thresh=args.overlap_thresh,
-              force_suppress=args.force_nms,
+              force_nms=args.force_nms,
               voc07_metric=args.use_voc07_metric)
               # args.num_class, args.batch_size,
               # args.data_shape, [args.mean_r, args.mean_g, args.mean_b],

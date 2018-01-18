@@ -12,13 +12,17 @@ class ConcatDB(Imdb):
     shuffle : bool
         whether to shuffle the initial list
     """
-    def __init__(self, imdbs, shuffle):
+    def __init__(self, imdbs, shuffle, pad_label=True):
+        #
         super(ConcatDB, self).__init__('concatdb')
+        #
         if not isinstance(imdbs, list):
             imdbs = [imdbs]
         self.imdbs = imdbs
         self._check_classes()
         self.image_set_index = self._load_image_set_index(shuffle)
+        if pad_label:
+            self.pad_labels()
 
     def _check_classes(self):
         """
@@ -108,3 +112,14 @@ class ConcatDB(Imdb):
         pos = self.image_set_index[index]
         n_db, n_index = self._locate_index(index)
         return self.imdbs[n_db].label_from_index(n_index)
+
+    def pad_labels(self, max_objects=0):
+        # max_objects = 0
+        for imdb in self.imdbs:
+            if imdb.max_objects > max_objects:
+                max_objects = imdb.max_objects
+        for imdb in self.imdbs:
+            imdb.max_objects = max_objects
+            imdb.pad_labels()
+        self.max_objects = max_objects
+        self.padding = self.max_objects
