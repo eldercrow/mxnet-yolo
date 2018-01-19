@@ -16,6 +16,8 @@ python train_imdb.py \
     --lr-steps 80,120, \
     --end-epoch 160 \
     --frequent 100 \
-    --pretrained ./pretrained/mobilenet/mobilenet \
-    --epoch 0 \
+    --pretrained ./model/yolo2_mobilenet_576 \
+    --epoch 96 \
     --gpus 0,1
+    # --pretrained ./pretrained/mobilenet/mobilenet \
+    # --epoch 0 \

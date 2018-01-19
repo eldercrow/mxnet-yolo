@@ -130,8 +130,9 @@ def get_symbol_train(network, num_classes,
             get_preds(body_rpn, body_loc, body, num_classes, use_global_stats)
 
     # get target GT label
-    tmp = mx.sym.Custom(*[anchor_boxes, label, cls_probs], name='yolo_target',
-            op_type='yolo_target')
+    tmp = mx.sym.Custom(*[anchor_boxes, label, cls_probs],
+            name='yolo_target', op_type='yolo_target',
+            th_small=16.0/576.0)
     loc_target = tmp[0]
     loc_target_mask = tmp[1]
     cls_target = tmp[2]
@@ -199,5 +200,5 @@ def get_symbol(network, num_classes,
 
     out = mx.contrib.symbol.MultiBoxDetection(*[cls_merged, loc_preds_det, anchor_boxes], \
             name="detection", nms_threshold=nms_thresh, force_suppress=force_suppress,
-            variances=(0.1, 0.1, 0.2, 0.2), nms_topk=nms_topk, clip=False)
+            variances=(0.1, 0.1, 0.2, 0.2), nms_topk=nms_topk) #, clip=False)
     return out

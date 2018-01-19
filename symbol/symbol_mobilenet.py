@@ -3,7 +3,7 @@ import mxnet as mx
 
 def batchnorm(data, name, use_global_stats=False):
     return mx.sym.BatchNorm(data, name=name, use_global_stats=use_global_stats,
-            fix_gamma=False, eps=1e-04, momentum=0.99)
+            fix_gamma=False, eps=1e-04, momentum=0.9)
 
 
 def conv_bn(data, name, \

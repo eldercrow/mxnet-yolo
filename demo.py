@@ -4,7 +4,8 @@ import mxnet as mx
 import os
 import importlib
 import sys
-from detect.detector import Detector
+from detect.face_detector import FaceDetector
+from symbol.symbol_builder import get_symbol
 
 CLASSES = ('aeroplane', 'bicycle', 'bird', 'boat',
            'bottle', 'bus', 'car', 'cat', 'chair',
@@ -12,8 +13,9 @@ CLASSES = ('aeroplane', 'bicycle', 'bird', 'boat',
            'motorbike', 'person', 'pottedplant',
            'sheep', 'sofa', 'train', 'tvmonitor')
 
+
 def get_detector(net, prefix, epoch, data_shape, mean_pixels, ctx,
-                 nms_thresh=0.5, force_nms=True):
+                 img_stride=64, nms_thresh=0.45, force_nms=False):
     """
     wrapper for initialize a detector
 
@@ -34,14 +36,13 @@ def get_detector(net, prefix, epoch, data_shape, mean_pixels, ctx,
     force_nms : bool
         force suppress different categories
     """
+    net = 'symbol_' + net
     sys.path.append(os.path.join(os.getcwd(), 'symbol'))
-    if net is not None:
-        prefix = prefix + "_" + net.strip('_yolo') + '_' + str(416)
-        net = importlib.import_module("symbol_" + net) \
-            .get_symbol(len(CLASSES), nms_thresh, force_nms)
-    detector = Detector(net, prefix, epoch, \
-        data_shape, mean_pixels, ctx=ctx)
+    net = get_symbol(net, len(CLASSES), nms_thresh, force_nms)
+    detector = FaceDetector(net, prefix, epoch, data_shape,
+            mean_pixels, img_stride=img_stride, th_nms=nms_thresh, ctx=ctx)
     return detector
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Single-shot detection network demo')
@@ -69,11 +70,13 @@ def parse_args():
                         help='green mean value')
     parser.add_argument('--mean-b', dest='mean_b', type=float, default=104,
                         help='blue mean value')
-    parser.add_argument('--thresh', dest='thresh', type=float, default=0.5,
-                        help='object visualize score threshold, default 0.6')
-    parser.add_argument('--nms', dest='nms_thresh', type=float, default=0.5,
-                        help='non-maximum suppression threshold, default 0.5')
-    parser.add_argument('--force', dest='force_nms', type=bool, default=True,
+    parser.add_argument('--img-stride', dest='img_stride', type=int, default=64,
+                        help='image stride')
+    parser.add_argument('--thresh', dest='thresh', type=float, default=0.25,
+                        help='object visualize score threshold, default 0.5')
+    parser.add_argument('--nms', dest='nms_thresh', type=float, default=0.45,
+                        help='non-maximum suppression threshold, default 0.45')
+    parser.add_argument('--force', dest='force_nms', type=bool, default=False,
                         help='force non-maximum suppression on different class')
     parser.add_argument('--timer', dest='show_timer', type=bool, default=True,
                         help='show detection time')
@@ -97,7 +100,8 @@ if __name__ == '__main__':
     detector = get_detector(network, args.prefix, args.epoch,
                             args.data_shape,
                             (args.mean_r, args.mean_g, args.mean_b),
-                            ctx, args.nms_thresh, args.force_nms)
+                            ctx, args.img_stride, args.nms_thresh, args.force_nms)
     # run detection
     detector.detect_and_visualize(image_list, args.dir, args.extension,
                                   CLASSES, args.thresh, args.show_timer)
+

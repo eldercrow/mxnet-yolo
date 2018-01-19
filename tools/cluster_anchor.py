@@ -253,9 +253,12 @@ def parse_args():
 if __name__ == '__main__':
     args = parse_args()
 
-    max_sz = args.data_shape // args.stride + 1
-    sizes = np.arange(1, max_sz) / float(max_sz)
-    sizes = np.power(2.0, sizes) - 1.0
+    sizes = np.arange(1, 40)
+    sizes = np.power(1.19, sizes)
+    # sizes = np.power(2.0, np.linspace(0, np.log(args.data_shape) / np.log(1.414), num=20))
+    sizes = sizes / float(np.max(sizes))
+    import ipdb
+    ipdb.set_trace()
     ratios = [1.0, 0.5, 0.3333, 0.25, 2.0, 3.0, 4.0]
     ratios = np.array(ratios)
 

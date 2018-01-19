@@ -12,12 +12,12 @@ class YoloTarget(mx.operator.CustomOp):
     '''
     Python (inexact) implementation of yolo output layer.
     '''
-    def __init__(self, th_iou, th_iou_neg, th_iou_pass, variances):
+    def __init__(self, th_iou, th_iou_neg, th_small, variances):
         #
         super(YoloTarget, self).__init__()
         self.th_iou = th_iou
         self.th_iou_neg = th_iou_neg
-        self.th_iou_pass = th_iou_pass
+        self.th_small = th_small
         self.variances = variances
 
         # precompute nms candidates
@@ -76,7 +76,7 @@ class YoloTarget(mx.operator.CustomOp):
         max_iou = np.zeros(n_anchors, dtype=np.float32)
 
         for i, label in enumerate(labels):
-            gt_cls = int(label[0]) + 1
+            gt_cls = int(label[0]) + 1 if label[0] >= 0 else -1
             #
             lsq = _autofit_ratio(label[1:], max_ratio=3.0)
             #
@@ -85,20 +85,18 @@ class YoloTarget(mx.operator.CustomOp):
             # skip already occupied ones
             iou_mask = iou > max_iou
             max_iou = np.maximum(iou, max_iou)
-            if label[0] == -1:
-                continue
             gt_sz = np.maximum(label[3]-label[1], label[4]-label[2])
+            if gt_sz < self.th_small:
+                gt_cls = -1
 
             # positive and regression samples
             pidx = np.where(np.logical_and(iou_mask, iou > self.th_iou))[0]
             ridx = np.where(np.logical_and(iou_mask, iou > self.th_iou_neg))[0]
 
-            if len(pidx) > 5:
-                pidx = np.random.choice(pidx, 5, replace=False)
+            # if len(pidx) > 5:
+            #     pidx = np.random.choice(pidx, 5, replace=False)
             if len(pidx) == 0:
                 pidx = [np.argmax(iou)]
-                if iou[pidx] < self.th_iou_pass:
-                    continue
 
             # map ridx first, and then pidx
             ridx = ridx[target_cls[ridx] == 0]
@@ -197,12 +195,12 @@ def _autofit_ratio(bb, max_ratio=3.0):
 
 @mx.operator.register("yolo_target")
 class YoloTargetProp(mx.operator.CustomOpProp):
-    def __init__(self, th_iou=0.5, th_iou_neg=0.4, th_iou_pass=0.25, variances=(0.1, 0.1, 0.2, 0.2)):
+    def __init__(self, th_iou=0.5, th_iou_neg=0.4, th_small=0.02, variances=(0.1, 0.1, 0.2, 0.2)):
         #
         super(YoloTargetProp, self).__init__(need_top_grad=False)
         self.th_iou = float(th_iou)
         self.th_iou_neg = float(th_iou_neg)
-        self.th_iou_pass = float(th_iou_pass)
+        self.th_small = float(th_small)
         self.variances = literal_eval(str(variances))
 
     def list_arguments(self):
@@ -222,4 +220,4 @@ class YoloTargetProp(mx.operator.CustomOpProp):
         return in_shape, out_shape, []
 
     def create_operator(self, ctx, shapes, dtypes):
-        return YoloTarget(self.th_iou, self.th_iou_neg, self.th_iou_pass, self.variances)
+        return YoloTarget(self.th_iou, self.th_iou_neg, self.th_small, self.variances)

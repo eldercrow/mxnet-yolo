@@ -69,7 +69,8 @@ class PascalVoc(Imdb):
             ridx = np.random.permutation(np.arange(self.num_images))
             image_set_index = [self.image_set_index[i] for i in ridx]
             labels = [self.labels[i] for i in ridx]
-            self.image_set_index, self.labels = image_set_index, labels
+            img_whs = [self.img_whs[i] for i in ridx]
+            self.image_set_index, self.labels, self.img_whs = image_set_index, labels, img_whs
         if self.is_train:
             self.pad_labels()
 
@@ -172,6 +173,12 @@ class PascalVoc(Imdb):
         """
         assert self.labels is not None, "Labels not processed"
         return self.labels[index]
+
+    def img_wh_from_index(self, index):
+        '''
+        '''
+        assert self.img_whs is not None
+        return self.img_whs[index]
 
     def _label_path_from_index(self, index):
         """
