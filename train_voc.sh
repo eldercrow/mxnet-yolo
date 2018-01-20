@@ -8,16 +8,15 @@ python train_imdb.py \
     --val-year 2007 \
     --batch-size 32 \
     --data-shape 576 \
-    --optimizer-name sgd \
+    --optimizer-name gnadam \
     --freeze '^(conv1|conv2).*' \
-    --lr 5e-03 \
+    --lr 5e-04 \
     --wd 1e-04 \
-    --lr-factor 0.1 \
-    --lr-steps 80,120, \
+    --lr-factor 0.88586679 \
+    --lr-steps 4, \
     --end-epoch 160 \
     --frequent 100 \
-    --pretrained ./model/yolo2_mobilenet_576 \
-    --epoch 96 \
+    --resume 4 \
     --gpus 0,1
     # --pretrained ./pretrained/mobilenet/mobilenet \
     # --epoch 0 \

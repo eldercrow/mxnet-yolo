@@ -1,9 +1,10 @@
 python demo.py \
     --network mobilenet_yolo \
-    --images ./data/demo/eagle.jpg \
+    --images ./data/demo/street.jpg \
     --prefix ./model/yolo2_mobilenet_576 \
-    --epoch 95 \
+    --epoch 61 \
     --data-shape 576 \
     --thresh 0.5 \
+    --nms 0.45 \
     --cpu
 

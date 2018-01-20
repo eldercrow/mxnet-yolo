@@ -52,7 +52,7 @@ def parse_args():
     parser.add_argument('--random-aspect-exp', dest='random_aspect_exp', type=float,
                         default=2.0, help='random data shape step')
     parser.add_argument('--random-aspect-epoch', dest='random_aspect_epoch', type=int,
-                        default=5, help='random shape epoch')
+                        default=4, help='random shape epoch')
     parser.add_argument('--img-stride', dest='img_stride', type=int,
                         default=32, help='image stride')
     parser.add_argument('--optimizer-name', dest='optimizer_name', type=str, default='nadam',

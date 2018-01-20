@@ -93,8 +93,8 @@ class YoloTarget(mx.operator.CustomOp):
             pidx = np.where(np.logical_and(iou_mask, iou > self.th_iou))[0]
             ridx = np.where(np.logical_and(iou_mask, iou > self.th_iou_neg))[0]
 
-            # if len(pidx) > 5:
-            #     pidx = np.random.choice(pidx, 5, replace=False)
+            if len(pidx) > 5:
+                pidx = np.random.choice(pidx, 5, replace=False)
             if len(pidx) == 0:
                 pidx = [np.argmax(iou)]
 

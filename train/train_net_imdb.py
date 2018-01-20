@@ -62,6 +62,28 @@ def get_lr_scheduler(learning_rate, lr_refactor_step, lr_refactor_ratio,
         return (lr, lr_scheduler)
 
 
+def get_factor_scheduler(learning_rate, lr_refactor_step, lr_refactor_ratio,
+                         num_example, batch_size, begin_epoch):
+    #
+    assert lr_refactor_ratio > 0
+    assert lr_refactor_ratio < 1
+
+    logging.getLogger().info("Initial lr = {}".format(learning_rate))
+
+    lr = learning_rate
+    epoch_size = num_example // batch_size
+    iter_refactor = [int(r) for r in lr_refactor_step.split(',') if r.strip()]
+    step = epoch_size * iter_refactor[0]
+
+    lr *= np.power(lr_refactor_ratio, begin_epoch // iter_refactor[0])
+    if lr != learning_rate:
+        logging.getLogger().info("Adjusted learning rate to {} for epoch {}".format(lr, begin_epoch))
+
+    lr_scheduler = mx.lr_scheduler.FactorScheduler(step=step, factor=lr_refactor_ratio)
+    #
+    return (lr, lr_scheduler)
+
+
 def set_mod_params(mod, args, auxs, logger):
     mod.init_params(initializer=mx.init.Xavier())
     args0, auxs0 = mod.get_params()
@@ -254,9 +276,14 @@ def train_net(net, imdb,
     batch_end_callback = mx.callback.Speedometer(batch_size, frequent=frequent)
     epoch_end_callback = mx.callback.do_checkpoint(prefix)
     monitor = mx.mon.Monitor(iter_monitor, pattern=monitor_pattern) if iter_monitor > 0 else None
-    optimizer_params={'learning_rate': learning_rate,
+
+    lr, lr_scheduler = get_factor_scheduler(learning_rate, lr_refactor_step,
+            lr_refactor_ratio, imdb.num_images, batch_size, begin_epoch)
+
+    optimizer_params={'learning_rate': lr,
+                      'lr_scheduler': lr_scheduler,
                       'wd': weight_decay,
-                      'clip_gradient': 4.0,
+                      'clip_gradient': 10.0,
                       'rescale_grad': 1.0 / len(ctx) if len(ctx) > 0 else 1.0 }
     if optimizer_name == 'sgd':
         optimizer_params['momentum'] = momentum

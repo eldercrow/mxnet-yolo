@@ -26,7 +26,7 @@ def get_symbol(num_classes, use_global_stats):
 
     # loc
     loc_1 = conv_bn_relu(concat6, 'loc_1',
-            num_filter=256, kernel=(1, 1), pad=(0, 0),
+            num_filter=512, kernel=(1, 1), pad=(0, 0),
             use_global_stats=use_global_stats)
 
     # extra layers
@@ -43,7 +43,7 @@ def get_symbol(num_classes, use_global_stats):
     #         nf_dw=1024, nf_sep=1024, kernel=(3, 3), pad=(1, 1),
     #         use_global_stats=use_global_stats)
 
-    return rpn_1, loc_1, conv8_2
+    return rpn_1, conv8_2, conv8_2
     #
     # th_small = 0.04 if not 'th_small' in kwargs else kwargs['th_small']
     # cls_probs = mx.sym.SoftmaxActivation(cls_preds, mode='channel')

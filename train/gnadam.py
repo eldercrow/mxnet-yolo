@@ -51,8 +51,9 @@ class GNadam(mx.optimizer.Optimizer):
 
         # preprocess grad
         #
+        # rand_sign = mx.nd.sign(mx.nd.uniform(-1, 1, grad.shape, ctx=grad.context))
         gw = mx.nd.sign(grad) * weight * wd
-        gw = mx.nd.minimum(gw, 0.0)
+        gw = mx.nd.clip(gw, -1, 2)
         grad *= (1.0 + gw)
         grad *= self.rescale_grad
         #
