@@ -1,12 +1,12 @@
 #!/usr/bin/bash
 
-python evaluate.py \
+python evaluate_wider.py \
     --network mobilenet_yolo \
-    --rec-path ./data/VOCdevkit/val.rec \
-    --num-class 20 \
-    --class-names ./dataset/names/pascal_voc.names \
-    --prefix ./model/yolo2_symbol_mobilenet_416 \
-    --epoch 151 \
-    --data-shape 416 \
-    --nms 0.45 \
-    --gpus 6,7
+    --dataset pascal_voc \
+    --image-set test \
+    --year 2007 \
+    --devkit-path ./data/VOCdevkit \
+    --data-shape 576 \
+    --prefix ./model/yolo2_mobilenet \
+    --epoch 118 \
+    --gpus 1

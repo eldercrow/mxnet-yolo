@@ -79,7 +79,7 @@ class FaceDetector(object):
             self.mod.forward(datum)
             out = self.mod.get_outputs()
             det = out[0][0].asnumpy()
-            # det = do_nms(det, 1, self.th_nms)
+            det = self._do_nms(det, self.th_nms)
             pidx = np.where(det[:, 0] >= 0)[0]
             det = det[pidx, :]
             # sidx = np.argsort(det[:, 1])[::-1]
@@ -224,23 +224,23 @@ class FaceDetector(object):
             img[:, :, (0, 1, 2)] = img[:, :, (2, 1, 0)]
             self.visualize_detection(img, det, classes, thresh)
 
-    #
-    # def _do_nms(self, dets):
-    #     #
-    #     areas = (dets[:, 4] - dets[:, 2]) * (dets[:, 5] - dets[:, 3])
-    #     vmask = np.ones((dets.shape[0],), dtype=int)
-    #     vidx = []
-    #     for i, d in enumerate(dets):
-    #         if vmask[i] == 0:
-    #             continue
-    #         iw = np.minimum(d[4], dets[i:, 4]) - np.maximum(d[2], dets[i:, 2])
-    #         ih = np.minimum(d[5], dets[i:, 5]) - np.maximum(d[3], dets[i:, 3])
-    #         I = np.maximum(iw, 0) * np.maximum(ih, 0)
-    #         iou = I / np.maximum(areas[i:] + areas[i] - I, 1e-08)
-    #         nidx = np.where(iou > self.th_nms)[0] + i
-    #         vmask[nidx] = 0
-    #         vidx.append(i)
-    #     return vidx
+
+    def _do_nms(self, dets, th_nms=0.7):
+        #
+        areas = (dets[:, 4] - dets[:, 2]) * (dets[:, 5] - dets[:, 3])
+        vmask = np.ones((dets.shape[0],), dtype=int)
+        vidx = []
+        for i, d in enumerate(dets):
+            if vmask[i] == 0:
+                continue
+            iw = np.minimum(d[4], dets[i:, 4]) - np.maximum(d[2], dets[i:, 2])
+            ih = np.minimum(d[5], dets[i:, 5]) - np.maximum(d[3], dets[i:, 3])
+            I = np.maximum(iw, 0) * np.maximum(ih, 0)
+            iou = I / np.maximum(areas[i:] + areas[i] - I, 1e-08)
+            nidx = np.where(iou > th_nms)[0] + i
+            vmask[nidx] = 0
+            vidx.append(i)
+        return dets[vidx, :]
     #
     #
     # def _comp_overlap(self, dets, im_shape):

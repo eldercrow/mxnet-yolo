@@ -109,7 +109,7 @@ class FaceTestIter(mx.io.DataIter):
         self._data = {'data': batch_data}
         if label is not None:
             label = mx.nd.expand_dims(label, axis=0)
-        self._label = {'label': label}
+        self._label = {'yolo_output_label': label}
         self._im_info = {'im_scale': scale, 'im_path': im_path, 'im_shape': im_shape}
 
     def _data_augmentation(self, data):
@@ -126,7 +126,7 @@ class FaceTestIter(mx.io.DataIter):
             #     data = cv2.resize(data, (sx1, sy1), interpolation=cv2.INTER_LINEAR)
             #     sf_x, sf_y = float(sx1) / sx, float(sy1) / sy1
         elif self._fix_hw == 'area':
-            sf = float(self._min_hw[0]*self._min_hw[1]) / float(sx*sy)
+            sf = np.sqrt(float(self._min_hw[0]*self._min_hw[1]) / float(sx*sy))
             sy1 = int(np.round(sy * sf))
             sx1 = int(np.round(sx * sf))
             # if sx1 != sx or sy1 != sy:
