@@ -45,30 +45,30 @@ def get_preds(body_rpn, body_loc, body, num_classes, use_global_stats):
     num_classes += 1
 
     # rpn (objectness) prediction
-    rpn_preds = depthwise_unit(body_rpn, '_rpn_pred',
-            nf_dw=256, nf_sep=0, kernel=(3, 3), pad=(1, 1),
-            no_act=True, use_global_stats=use_global_stats)
+    # rpn_preds = depthwise_unit(body_rpn, '_rpn_pred',
+    #         nf_dw=256, nf_sep=0, kernel=(3, 3), pad=(1, 1),
+    #         no_act=True, use_global_stats=use_global_stats)
 
     rpn_pred_conv_bias = mx.sym.var(name='rpn_pred_conv_bias',
             init=FocalBiasInit(2, 0.01))
-    rpn_preds = mx.sym.Convolution(rpn_preds, name='rpn_pred_conv', bias=rpn_pred_conv_bias,
+    rpn_preds = mx.sym.Convolution(body_rpn, name='rpn_pred_conv', bias=rpn_pred_conv_bias,
             num_filter=num_anchor*2, kernel=(1, 1), pad=(0, 0))
 
     # class prediction
-    cls_preds = depthwise_unit(body, '_cls_pred',
-            nf_dw=1024, nf_sep=0, kernel=(5, 5), pad=(2, 2),
-            no_act=True, use_global_stats=use_global_stats)
+    # cls_preds = depthwise_unit(body, '_cls_pred',
+    #         nf_dw=1024, nf_sep=0, kernel=(5, 5), pad=(2, 2),
+    #         no_act=True, use_global_stats=use_global_stats)
 
     cls_pred_conv_bias = mx.sym.var(name='cls_pred_conv_bias',
             init=FocalBiasInit(num_classes, 0.01))
-    cls_preds = mx.sym.Convolution(cls_preds, name='cls_pred_conv', bias=cls_pred_conv_bias,
+    cls_preds = mx.sym.Convolution(body, name='cls_pred_conv', bias=cls_pred_conv_bias,
             num_filter=num_anchor*num_classes, kernel=(1, 1), pad=(0, 0))
 
     # bb and iou prediction
-    loc_preds = depthwise_unit(body_loc, '_loc_pred',
-            nf_dw=1024, nf_sep=0, kernel=(3, 3), pad=(1, 1),
-            no_act=True, use_global_stats=use_global_stats)
-    loc_preds = mx.sym.Convolution(loc_preds, name='loc_pred_conv',
+    # loc_preds = depthwise_unit(body_loc, '_loc_pred',
+    #         nf_dw=1024, nf_sep=0, kernel=(3, 3), pad=(1, 1),
+    #         no_act=True, use_global_stats=use_global_stats)
+    loc_preds = mx.sym.Convolution(body_loc, name='loc_pred_conv',
             num_filter=num_anchor*4, kernel=(1, 1), pad=(0, 0))
 
     anchor_boxes = mx.sym.Custom(body, op_type='anchor_box',

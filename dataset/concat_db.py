@@ -113,6 +113,14 @@ class ConcatDB(Imdb):
         n_db, n_index = self._locate_index(index)
         return self.imdbs[n_db].label_from_index(n_index)
 
+    def img_wh_from_index(self, index):
+        '''
+        '''
+        assert self.image_set_index is not None, "Dataset not initialized"
+        pos = self.image_set_index[index]
+        n_db, n_index = self._locate_index(index)
+        return self.imdbs[n_db].img_wh_from_index(n_index)
+
     def pad_labels(self, max_objects=0):
         # max_objects = 0
         for imdb in self.imdbs:

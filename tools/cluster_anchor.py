@@ -16,7 +16,7 @@ def clsuter_anchor(imdb, box_shapes, n_cluster, data_shape, stride, th_iou=0.5):
         Each row contains (width, height) of an anchor box.
         n > n_cluster.
     '''
-    labels_all = imdb.dump_bb()
+    labels_all = imdb.dump_bb(apply_wh=True)
     valid_labels = []
     for label in labels_all:
         valid = _get_valid_label(label)
@@ -254,11 +254,9 @@ if __name__ == '__main__':
     args = parse_args()
 
     sizes = np.arange(1, 40)
-    sizes = np.power(1.19, sizes)
+    # sizes = np.power(1.19, sizes)
     # sizes = np.power(2.0, np.linspace(0, np.log(args.data_shape) / np.log(1.414), num=20))
     sizes = sizes / float(np.max(sizes))
-    import ipdb
-    ipdb.set_trace()
     ratios = [1.0, 0.5, 0.3333, 0.25, 2.0, 3.0, 4.0]
     ratios = np.array(ratios)
 

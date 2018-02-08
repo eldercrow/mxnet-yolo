@@ -1,21 +1,22 @@
 python train_imdb.py \
-    --network mobilenet_yolo \
+    --network ssdnetv1_yolo \
     --dataset pascal_voc \
     --devkit-path ./data/VOCdevkit \
     --year 2007,2012 \
     --image-set trainval \
     --val-image-set test \
     --val-year 2007 \
-    --batch-size 16 \
+    --prefix ./model/yolo2_ssdnetv1 \
+    --batch-size 12 \
     --data-shape 576 \
-    --optimizer-name gnadam \
-    --freeze '^(conv1|conv2).*' \
-    --lr 5e-04 \
-    --wd 1e-02 \
-    --lr-factor 0.88586679 \
+    --optimizer-name sgd \
+    --freeze '^(1\/|2\/).*' \
+    --lr 5e-03 \
+    --wd 4e-05 \
+    --lr-factor 0.9 \
     --lr-steps 4, \
     --end-epoch 160 \
     --frequent 100 \
-    --pretrained ./model/yolo2_mobilenet_576 \
-    --epoch 104 \
+    --pretrained ./pretrained/ssdnetv1/ssdnetv1_imagenet \
+    --epoch 138 \
     --gpus 0

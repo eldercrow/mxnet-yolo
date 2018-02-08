@@ -225,9 +225,11 @@ class DetIter(mx.io.DataIter):
 
             # index = self.debug_index
             im_path = self._imdb.image_path_from_index(index)
-            with open(im_path, 'rb') as fp:
-                img_content = fp.read()
-            img = mx.img.imdecode(img_content)
+            # with open(im_path, 'rb') as fp:
+            #     img_content = fp.read()
+            # img = mx.img.imdecode(img_content)
+            img = cv2.imread(im_path)[:, :, ::-1]
+            img = mx.nd.array(img, ctx=mx.cpu())
 
             gt = self._imdb.label_from_index(index).copy() if self.is_train else None
 
@@ -252,7 +254,7 @@ class DetIter(mx.io.DataIter):
             rand_crop = self._rand_sampler.sample(label, (ww, hh))
             # cropping box
             xmin, ymin, xmax, ymax = np.array(rand_crop[0]).astype(int)
-            data = crop_roi_patch(data.asnumpy(), (xmin, ymin, xmax, ymax))
+            data = crop_roi_patch(data, (xmin, ymin, xmax, ymax))
             # label relative to crop box
             label = rand_crop[1]
 

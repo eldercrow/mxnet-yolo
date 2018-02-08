@@ -9,8 +9,8 @@ from dataset.face_test_iter import FaceTestIter
 from config.config import cfg
 from evaluate.eval_metric import MApMetric, VOC07MApMetric
 import logging
-from symbol.symbol_factory import get_symbol
-from tools.do_nms import do_nms
+from symbol.symbol_builder import get_symbol
+# from tools.do_nms import do_nms
 from tools.load_checkpoint import load_checkpoint
 
 def evaluate_net(net, imdb, mean_pixels, data_shape,
@@ -71,14 +71,14 @@ def evaluate_net(net, imdb, mean_pixels, data_shape,
     model_prefix += '_' + str(data_shape[1])
 
     # iterator
-    eval_iter = FaceTestIter(imdb, mean_pixels, img_stride=64, fix_hw='area')
+    eval_iter = FaceTestIter(imdb, mean_pixels, min_hw=data_shape[1:], img_stride=32, fix_hw='area')
     # model params
     load_net, args, auxs = mx.model.load_checkpoint(model_prefix, epoch)
     # network
     if net is None:
         net, args, auxs = mx.model.load_checkpoint(model_prefix, epoch)
     else:
-        net = get_symbol(net, data_shape[1], num_classes=num_classes,
+        net = get_symbol('symbol_'+net, num_classes=num_classes,
             nms_thresh=nms_thresh, force_suppress=force_nms)
         args, auxs = load_checkpoint(model_prefix, epoch)
 
@@ -108,6 +108,8 @@ def evaluate_net(net, imdb, mean_pixels, data_shape,
         det0 = preds[0][0].asnumpy() # (n_anchor, 6)
         vidx = np.where(det0[:, 0] >= 0)[0]
         det0 = det0[vidx, :]
+        # import ipdb
+        # ipdb.set_trace()
         # det0 = do_nms(det0, 1, nms_thresh)
         # preds[0][0] = mx.nd.array(det0, ctx=preds[0].context)
 

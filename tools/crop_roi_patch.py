@@ -5,7 +5,7 @@ def crop_roi_patch(img, roi):
     hh = img.shape[0]
     ww = img.shape[1]
     if roi[0] >= 0 and roi[1] >= 0 and roi[2] <= ww and roi[3] <= hh:
-        patch = mx.img.fixed_crop(mx.nd.array(img), roi[0], roi[1], roi[2]-roi[0], roi[3]-roi[1])
+        patch = mx.img.fixed_crop(img, roi[0], roi[1], roi[2]-roi[0], roi[3]-roi[1])
     else:
         try:
             # padding
@@ -22,14 +22,13 @@ def crop_roi_patch(img, roi):
             rp = lp + (ri - li)
             bp = up_ + (bi - ui)
 
-            patch_ = np.full((ph, pw, 3), 128, dtype=np.uint8)
-            patch_[up_:bp, lp:rp, :] = img[ui:bi, li:ri, :]
-            patch = mx.nd.array(patch_)
+            patch = mx.nd.full((ph, pw, 3), 128, ctx=mx.cpu(), dtype=np.uint8)
+            patch[up_:bp, lp:rp, :] = img[ui:bi, li:ri, :]
         except:
             import ipdb
             ipdb.set_trace()
     # patch = mx.nd.transpose(patch, axes=(2, 0, 1))
     # patch = patch.astype('float32')
     # patch = patch - self._mean_pixels
-    return patch
+    return patch.as_in_context(mx.cpu())
 

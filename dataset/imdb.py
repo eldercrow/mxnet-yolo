@@ -17,6 +17,7 @@ class Imdb(object):
         self.image_set_index = []
         self.num_images = 0
         self.labels = None
+        self.img_whs = None
         self.padding = 0
 
     def image_path_from_index(self, index):
@@ -50,6 +51,11 @@ class Imdb(object):
         """
         raise NotImplementedError
 
+    def img_wh_from_index(self, index):
+        '''
+        '''
+        raise NotImplementedError
+
     def save_imglist(self, fname=None, root=None, shuffle=False):
         """
         save imglist to disk
@@ -79,7 +85,7 @@ class Imdb(object):
         else:
             raise RuntimeError("No image in imdb")
 
-    def dump_bb(self):
+    def dump_bb(self, apply_wh=False):
         '''
         Dump every bounding box into a sigle file.
         Will be used in bounding box analysis.
@@ -89,13 +95,18 @@ class Imdb(object):
             label = self.label_from_index(index)
             if label.size < 1:
                 continue
+            if apply_wh:
+                img_wh = self.img_wh_from_index(index)
+                aspect = np.sqrt(img_wh[0] / float(img_wh[1]))
+                vidx = np.where(np.any(label != -1, axis=1))[0]
+                label[vidx, 1:4:2] *= aspect
+                label[vidx, 2:5:2] /= aspect
             labels_all.append(label)
             # if labels_all is None:
             #     labels_all = label
             # else:
             #     labels_all = np.vstack((labels_all, label))
         return labels_all
-
 
     def _load_class_names(self, filename, dirname):
         """
