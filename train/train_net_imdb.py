@@ -298,10 +298,12 @@ def train_net(net, imdb,
     # training with random aspect ratio
     begin_epochs = range(begin_epoch, end_epoch, random_aspect_epoch)
     end_epochs = begin_epochs[1:] + [end_epoch]
+    aspect_signs = np.tile((1, -1), (len(begin_epochs)+1) // 2)
 
-    for be, ee in zip(begin_epochs, end_epochs):
+    for be, ee, asign in zip(begin_epochs, end_epochs, aspect_signs):
         #
-        rand_asp = np.sqrt(np.power(random_aspect_exp, np.random.uniform(-1, 1)))
+        # alternate between portrait and landscape
+        rand_asp = np.sqrt(np.power(random_aspect_exp, asign * np.random.uniform(0, 1)))
         dh = data_shape[1] / rand_asp
         dh = int(np.round(dh / img_stride)) * img_stride
         dw = data_shape[2] * rand_asp
